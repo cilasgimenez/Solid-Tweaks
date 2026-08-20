@@ -19,7 +19,7 @@ namespace SolidTweaks.Presentation
     internal sealed class MainForm : Form
     {
         private const string ChannelUrl = "https://www.youtube.com/@CG3D-ID";
-        private const string RepositoryUrl = "https://github.com/cilasgimenez/SolidTweaks";
+        private const string RepositoryUrl = "https://github.com/cilasgimenez/Solid-Tweaks";
         private readonly SolidWorksService solidWorks;
         private readonly ITweak autoRotateSketch;
         private readonly ITweak spaceNormalTo;
