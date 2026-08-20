@@ -1,0 +1,6 @@
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.SolidWorksAddin\bin\Release-1.12\SolidTweaks.SolidWorksAddin.v1_12.dll
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.SolidWorksAddin\bin\Release-1.12\SolidTweaks.SolidWorksAddin.v1_12.pdb
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.SolidWorksAddin\obj\Release-1.12\SolidTweaks.SolidWorksAddin.csproj.AssemblyReference.cache
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.SolidWorksAddin\obj\Release-1.12\SolidTweaks.SolidWorksAddin.csproj.CoreCompileInputs.cache
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.SolidWorksAddin\obj\Release-1.12\SolidTweaks.SolidWorksAddin.v1_12.dll
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.SolidWorksAddin\obj\Release-1.12\SolidTweaks.SolidWorksAddin.v1_12.pdb

@@ -1,0 +1,79 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{5175D767-6B50-4C8D-A511-03C7EBAE62B2}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>SolidTweaks.SolidWorksAddin</RootNamespace>
+    <AssemblyName>SolidTweaks.SolidWorksAddin.v1_13</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <LangVersion>7.3</LangVersion>
+    <Prefer32Bit>false</Prefer32Bit>
+    <Deterministic>true</Deterministic>
+    <RegisterForComInterop>false</RegisterForComInterop>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="SolidWorks.Interop.sldworks">
+      <HintPath>$(ProgramW6432)\SOLIDWORKS Corp\SOLIDWORKS\SolidWorks.Interop.sldworks.dll</HintPath>
+      <EmbedInteropTypes>false</EmbedInteropTypes>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SolidWorks.Interop.swconst">
+      <HintPath>$(ProgramW6432)\SOLIDWORKS Corp\SOLIDWORKS\SolidWorks.Interop.swconst.dll</HintPath>
+      <EmbedInteropTypes>false</EmbedInteropTypes>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SolidWorks.Interop.swpublished">
+      <HintPath>$(ProgramW6432)\SOLIDWORKS Corp\SOLIDWORKS\SolidWorks.Interop.swpublished.dll</HintPath>
+      <EmbedInteropTypes>false</EmbedInteropTypes>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="SolidTweaksAddin.cs" />
+    <Compile Include="SheetMetalDxfExportDialog.cs" />
+    <Compile Include="..\SolidTweaks.App\Infrastructure\SolidWorks\SheetMetalDxfExportService.cs">
+      <Link>SheetMetalDxfExportService.cs</Link>
+    </Compile>
+    <Compile Include="StepExportActionDialog.cs" />
+    <Compile Include="StepExportService.cs" />
+    <Compile Include="..\Shared\SolidTweaksFeatureSettings.cs">
+      <Link>Shared\SolidTweaksFeatureSettings.cs</Link>
+    </Compile>
+    <Compile Include="..\SolidTweaks.App\Infrastructure\Diagnostics\ApplicationLog.cs">
+      <Link>Shared\ApplicationLog.cs</Link>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="..\Shared\Localization.cs">
+      <Link>Shared\Localization.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\SolidTweaks.App\Exportar_Step.png">
+      <Link>Exportar_Step.png</Link>
+      <LogicalName>SolidTweaks.SolidWorksAddin.Exportar_Step.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\SolidTweaks.App\Exportar_DXF.png">
+      <Link>Exportar_DXF.png</Link>
+      <LogicalName>SolidTweaks.SolidWorksAddin.Exportar_DXF.png</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -1,0 +1,103 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{12B08698-35BD-40A0-9D84-D55A54C0A8A3}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>SolidTweaks</RootNamespace>
+    <AssemblyName>SolidTweaks</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <LangVersion>7.3</LangVersion>
+    <Prefer32Bit>false</Prefer32Bit>
+    <ApplicationIcon>Icone.ico</ApplicationIcon>
+    <Deterministic>true</Deterministic>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="UIAutomationClient" />
+    <Reference Include="UIAutomationTypes" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="SolidWorks.Interop.sldworks">
+      <HintPath>$(ProgramW6432)\SOLIDWORKS Corp\SOLIDWORKS\SolidWorks.Interop.sldworks.dll</HintPath>
+      <EmbedInteropTypes>false</EmbedInteropTypes>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SolidWorks.Interop.swconst">
+      <HintPath>$(ProgramW6432)\SOLIDWORKS Corp\SOLIDWORKS\SolidWorks.Interop.swconst.dll</HintPath>
+      <EmbedInteropTypes>false</EmbedInteropTypes>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Core\Features\ITweak.cs" />
+    <Compile Include="Core\SolidWorks\ISolidWorksService.cs" />
+    <Compile Include="Features\AutoRotateSketchTweak.cs" />
+    <Compile Include="Features\ConfigurableShortcutTweak.cs" />
+    <Compile Include="Features\ExportStepTweak.cs" />
+    <Compile Include="Features\ExportSheetMetalDxfTweak.cs" />
+    <Compile Include="Features\SpaceNormalToTweak.cs" />
+    <Compile Include="Infrastructure\Diagnostics\ApplicationLog.cs" />
+    <Compile Include="Infrastructure\Persistence\FeatureStateStore.cs" />
+    <Compile Include="Infrastructure\SolidWorks\SolidWorksKeyboardShortcutService.cs" />
+    <Compile Include="Infrastructure\SolidWorks\SolidWorksAddinRegistrationService.cs" />
+    <Compile Include="Infrastructure\SolidWorks\SolidWorksPreferenceResolver.cs" />
+    <Compile Include="Infrastructure\SolidWorks\SolidWorksService.cs" />
+    <Compile Include="Infrastructure\SystemInfo\SystemInfoService.cs" />
+    <Compile Include="Presentation\MainForm.cs" />
+    <Compile Include="Presentation\ShortcutCaptureDialog.cs" />
+    <Compile Include="Presentation\UiPalette.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="..\Shared\Localization.cs">
+      <Link>Shared\Localization.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\ShortcutBinding.cs">
+      <Link>Shared\ShortcutBinding.cs</Link>
+    </Compile>
+    <Compile Include="..\Shared\SolidTweaksFeatureSettings.cs">
+      <Link>Shared\SolidTweaksFeatureSettings.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Help.png" />
+    <EmbeddedResource Include="Logo_CG3D.png">
+      <LogicalName>SolidTweaks.Brand.Logo_CG3D.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Logo_Youtube.png">
+      <LogicalName>SolidTweaks.Brand.Logo_Youtube.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Logo_Github.png">
+      <LogicalName>SolidTweaks.Brand.Logo_Github.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\SolidTweaks.SolidWorksAddin\bin\$(Configuration)\SolidTweaks.SolidWorksAddin.v1_13.dll">
+      <LogicalName>SolidTweaks.Embedded.SolidTweaks.SolidWorksAddin.v1_13.dll</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SolidTweaks.SolidWorksAddin\SolidTweaks.SolidWorksAddin.csproj">
+      <Project>{5175D767-6B50-4C8D-A511-03C7EBAE62B2}</Project>
+      <Name>SolidTweaks.SolidWorksAddin</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

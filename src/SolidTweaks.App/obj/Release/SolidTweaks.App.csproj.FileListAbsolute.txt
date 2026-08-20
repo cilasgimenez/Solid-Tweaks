@@ -1,0 +1,8 @@
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\bin\Release\SolidTweaks.exe
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\obj\Release\SolidTweaks.App.csproj.AssemblyReference.cache
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\obj\Release\SolidTweaks.App.csproj.CoreCompileInputs.cache
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\obj\Release\SolidTweaks.exe
+D:\PROJETOS\CODEX\SolidTweaks\src\SolidTweaks.App\bin\Release\SolidTweaks.exe
+D:\PROJETOS\CODEX\SolidTweaks\src\SolidTweaks.App\obj\Release\SolidTweaks.App.csproj.AssemblyReference.cache
+D:\PROJETOS\CODEX\SolidTweaks\src\SolidTweaks.App\obj\Release\SolidTweaks.App.csproj.CoreCompileInputs.cache
+D:\PROJETOS\CODEX\SolidTweaks\src\SolidTweaks.App\obj\Release\SolidTweaks.exe

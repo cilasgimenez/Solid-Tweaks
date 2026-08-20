@@ -1,0 +1,10 @@
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\bin\Validation\SolidTweaks.exe.config
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\bin\Validation\SolidTweaks.exe
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\bin\Validation\SolidTweaks.pdb
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\bin\Validation\SolidTweaks.SolidWorksAddin.v1_12.dll
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\bin\Validation\SolidTweaks.SolidWorksAddin.v1_12.pdb
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\obj\Validation\SolidTweaks.App.csproj.AssemblyReference.cache
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\obj\Validation\SolidTweaks.App.csproj.CoreCompileInputs.cache
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\obj\Validation\SolidTwe.DCCD0DA6.Up2Date
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\obj\Validation\SolidTweaks.exe
+D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.App\obj\Validation\SolidTweaks.pdb
