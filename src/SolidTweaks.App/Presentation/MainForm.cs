@@ -20,6 +20,8 @@ namespace SolidTweaks.Presentation
     {
         private const string ChannelUrl = "https://www.youtube.com/@CG3D-ID";
         private const string RepositoryUrl = "https://github.com/cilasgimenez/Solid-Tweaks";
+        private const string RealViewHelpDescription =
+            "Enables RealView for the graphics renderer used by SOLIDWORKS. NVIDIA, AMD, and Intel cards are supported.";
         private readonly SolidWorksService solidWorks;
         private readonly ITweak autoRotateSketch;
         private readonly ITweak spaceNormalTo;
@@ -30,6 +32,10 @@ namespace SolidTweaks.Presentation
         private readonly ShortcutBindingMigration shortcutMigration;
         private readonly ITweak exportStep;
         private readonly ITweak exportSheetMetalDxf;
+        private readonly ITweak realView;
+        private readonly ITweak enhancedGraphicsPerformance;
+        private readonly ITweak gpuSilhouetteEdges;
+        private readonly ITweak fullAntialiasing;
         private readonly SolidWorksAddinRegistrationService commandFeatureRegistration;
         private readonly SystemInfoService systemInfo;
         private readonly Label solidWorksValue;
@@ -44,25 +50,45 @@ namespace SolidTweaks.Presentation
         private readonly LinkLabel offsetEntitiesShortcutLink;
         private readonly CheckBox exportStepCheckBox;
         private readonly CheckBox exportSheetMetalDxfCheckBox;
+        private readonly Panel tweaksCard;
+        private readonly Button tweakOptionsButton;
+        private readonly List<Control> tweakOptionControls = new List<Control>();
+        private readonly Panel visualCard;
+        private readonly Button visualOptionsButton;
+        private readonly List<Control> visualOptionControls = new List<Control>();
+        private readonly CheckBox realViewCheckBox;
+        private readonly CheckBox enhancedGraphicsPerformanceCheckBox;
+        private readonly CheckBox gpuSilhouetteEdgesCheckBox;
+        private readonly CheckBox fullAntialiasingCheckBox;
         private readonly Label autoRotateRequirementLabel;
         private readonly Label spaceNormalToRequirementLabel;
         private readonly Label fixSelectionShortcutRequirementLabel;
         private readonly Label constructionGeometryShortcutRequirementLabel;
         private readonly Label measureShortcutRequirementLabel;
         private readonly Label offsetEntitiesShortcutRequirementLabel;
+        private readonly Label gpuSilhouetteRequirementLabel;
+        private readonly Panel headerPanel;
+        private readonly FlowLayoutPanel contentPanel;
+        private readonly StatusStrip mainStatusStrip;
         private readonly Button reconnectButton;
         private readonly Button updateButton;
         private readonly System.Windows.Forms.Timer updateAttentionTimer;
         private readonly System.Windows.Forms.Timer solidWorksMonitorTimer;
         private readonly ToolStripStatusLabel statusLabel;
         private readonly ToolTip helpToolTip;
+        private readonly ToolTip realViewHelpToolTip;
         private readonly Image helpIconImage;
+        private readonly Image realViewHelpImage;
         private readonly Image channelLogoImage;
         private readonly Image youtubeLogoImage;
         private readonly Image githubLogoImage;
+        private readonly Control realViewHelpControl;
         private bool syncingUi;
         private bool updateInProgress;
         private bool connectionRefreshInProgress;
+        private bool tweakOptionsExpanded;
+        private bool visualOptionsExpanded;
+        private bool adjustingFormHeight;
         private int updateAttentionStep;
         private bool? lastObservedHasActiveDocument;
         private readonly Dictionary<Control, string> localizedTexts = new Dictionary<Control, string>();
@@ -98,8 +124,14 @@ namespace SolidTweaks.Presentation
                 configurableKeyboardService, new FeatureStateStore(), ReportKeyboardProgress);
             exportStep = new ExportStepTweak(commandFeatureRegistration);
             exportSheetMetalDxf = new ExportSheetMetalDxfTweak(commandFeatureRegistration);
+            var visualSettings = new VisualSettingsService();
+            realView = new RealViewTweak(visualSettings);
+            enhancedGraphicsPerformance = new EnhancedGraphicsPerformanceTweak(visualSettings);
+            gpuSilhouetteEdges = new GpuSilhouetteEdgesTweak(visualSettings);
+            fullAntialiasing = new FullAntialiasingTweak(visualSettings);
             systemInfo = new SystemInfoService();
             helpIconImage = LoadHelpIcon();
+            realViewHelpImage = LoadEmbeddedImage("SolidTweaks.Help.RealView.png");
             channelLogoImage = LoadEmbeddedImage("SolidTweaks.Brand.Logo_CG3D.png");
             youtubeLogoImage = LoadEmbeddedImage("SolidTweaks.Brand.Logo_Youtube.png");
             githubLogoImage = LoadEmbeddedImage("SolidTweaks.Brand.Logo_Github.png");
@@ -113,17 +145,30 @@ namespace SolidTweaks.Presentation
                 ReshowDelay = 100,
                 AutoPopDelay = 12000
             };
+            realViewHelpToolTip = new ToolTip
+            {
+                // O balão nativo do WinForms ignora OwnerDraw e recorta a
+                // ilustração. Este tooltip dedicado usa a janela desenhável.
+                IsBalloon = false,
+                ShowAlways = true,
+                OwnerDraw = true,
+                InitialDelay = 250,
+                ReshowDelay = 100,
+                AutoPopDelay = 12000
+            };
+            realViewHelpToolTip.Popup += RealViewHelpToolTipOnPopup;
+            realViewHelpToolTip.Draw += RealViewHelpToolTipOnDraw;
 
             Text = "Solid Tweaks";
             Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(760, 660);
+            ClientSize = new Size(760, 620);
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             BackColor = UiPalette.Window;
             Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
 
-            var header = BuildHeader(
+            headerPanel = BuildHeader(
                 helpToolTip,
                 channelLogoImage,
                 youtubeLogoImage,
@@ -136,7 +181,7 @@ namespace SolidTweaks.Presentation
                 out dotNetValue,
                 out languageLink,
                 out reconnectButton);
-            var tweaksCard = BuildTweaksCard(
+            tweaksCard = BuildTweaksCard(
                 helpToolTip,
                 helpIconImage,
                 out autoRotateCheckBox,
@@ -150,47 +195,65 @@ namespace SolidTweaks.Presentation
                 out fixSelectionShortcutRequirementLabel,
                 out constructionGeometryShortcutRequirementLabel,
                 out measureShortcutRequirementLabel,
-                out offsetEntitiesShortcutRequirementLabel);
+                out offsetEntitiesShortcutRequirementLabel,
+                out tweakOptionsButton);
             var resourcesCard = BuildResourcesCard(
                 helpToolTip,
                 helpIconImage,
                 out exportStepCheckBox,
                 out exportSheetMetalDxfCheckBox,
                 out updateButton);
+            visualCard = BuildVisualCard(
+                helpToolTip,
+                helpIconImage,
+                out realViewHelpControl,
+                out realViewCheckBox,
+                out enhancedGraphicsPerformanceCheckBox,
+                out gpuSilhouetteEdgesCheckBox,
+                out fullAntialiasingCheckBox,
+                out gpuSilhouetteRequirementLabel,
+                out visualOptionsButton);
             updateAttentionTimer = new System.Windows.Forms.Timer { Interval = 75 };
             updateAttentionTimer.Tick += UpdateAttentionTimerOnTick;
             solidWorksMonitorTimer = new System.Windows.Forms.Timer { Interval = 2000 };
             solidWorksMonitorTimer.Tick += SolidWorksMonitorTimerOnTick;
-            StatusStrip statusStrip = BuildStatusStrip(out statusLabel);
+            mainStatusStrip = BuildStatusStrip(out statusLabel);
 
-            var content = new FlowLayoutPanel
+            contentPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
                 AutoScroll = true,
                 BackColor = UiPalette.Window,
-                Padding = new Padding(24, 10, 24, 10)
+                // A margem inferior permanece visível entre o último cartão e
+                // a barra de status, inclusive quando a rolagem for necessária.
+                Padding = new Padding(24, 10, 24, 16)
             };
             Action alignCards = delegate
             {
                 int width = Math.Max(
                     100,
-                    content.ClientSize.Width - content.Padding.Horizontal - SystemInformation.VerticalScrollBarWidth);
-                foreach (Control card in content.Controls)
+                    contentPanel.ClientSize.Width - contentPanel.Padding.Horizontal - SystemInformation.VerticalScrollBarWidth);
+                foreach (Control card in contentPanel.Controls)
                 {
                     card.Width = width;
                 }
             };
-            content.SizeChanged += delegate { alignCards(); };
-            content.ControlAdded += delegate { alignCards(); };
-            content.Controls.Add(infoCard);
-            content.Controls.Add(tweaksCard);
-            content.Controls.Add(resourcesCard);
+            contentPanel.SizeChanged += delegate { alignCards(); };
+            contentPanel.ControlAdded += delegate
+            {
+                alignCards();
+            };
+            contentPanel.Controls.Add(infoCard);
+            contentPanel.Controls.Add(tweaksCard);
+            contentPanel.Controls.Add(resourcesCard);
+            contentPanel.Controls.Add(visualCard);
 
-            Controls.Add(content);
-            Controls.Add(header);
-            Controls.Add(statusStrip);
+            Controls.Add(contentPanel);
+            Controls.Add(headerPanel);
+            Controls.Add(mainStatusStrip);
+            AdjustFormHeightToContent();
 
             reconnectButton.Click += async delegate { await RefreshConnectionAsync(); };
             languageLink.LinkClicked += LanguageLinkOnLinkClicked;
@@ -200,12 +263,19 @@ namespace SolidTweaks.Presentation
             constructionGeometryShortcutLink.LinkClicked += delegate { ConfigureShortcut(constructionGeometryShortcut, constructionGeometryShortcutLink); };
             measureShortcutLink.LinkClicked += delegate { ConfigureShortcut(measureShortcut, measureShortcutLink); };
             offsetEntitiesShortcutLink.LinkClicked += delegate { ConfigureShortcut(offsetEntitiesShortcut, offsetEntitiesShortcutLink); };
+            tweakOptionsButton.Click += TweakOptionsButtonOnClick;
+            visualOptionsButton.Click += VisualOptionsButtonOnClick;
             exportStepCheckBox.CheckedChanged += ExportStepCheckBoxOnCheckedChanged;
             exportSheetMetalDxfCheckBox.CheckedChanged += ExportSheetMetalDxfCheckBoxOnCheckedChanged;
+            realViewCheckBox.CheckedChanged += RealViewCheckBoxOnCheckedChanged;
+            enhancedGraphicsPerformanceCheckBox.CheckedChanged += EnhancedGraphicsPerformanceCheckBoxOnCheckedChanged;
+            gpuSilhouetteEdgesCheckBox.CheckedChanged += GpuSilhouetteEdgesCheckBoxOnCheckedChanged;
+            fullAntialiasingCheckBox.CheckedChanged += FullAntialiasingCheckBoxOnCheckedChanged;
             updateButton.Click += UpdateButtonOnClick;
             statusLabel.Click += StatusLabelOnClick;
             Shown += async delegate
             {
+                AdjustFormHeightToContent();
                 await InitializeAsync();
                 solidWorksMonitorTimer.Start();
             };
@@ -216,7 +286,9 @@ namespace SolidTweaks.Presentation
                 updateAttentionTimer.Stop();
                 updateAttentionTimer.Dispose();
                 helpToolTip.Dispose();
+                realViewHelpToolTip.Dispose();
                 helpIconImage.Dispose();
+                realViewHelpImage.Dispose();
                 channelLogoImage.Dispose();
                 youtubeLogoImage.Dispose();
                 githubLogoImage.Dispose();
@@ -448,9 +520,10 @@ namespace SolidTweaks.Presentation
             out Label fixSelectionShortcutRequirementLabel,
             out Label constructionGeometryShortcutRequirementLabel,
             out Label measureShortcutRequirementLabel,
-            out Label offsetEntitiesShortcutRequirementLabel)
+            out Label offsetEntitiesShortcutRequirementLabel,
+            out Button optionsButton)
         {
-            var card = CreateCard(252);
+            var card = CreateCard(116);
             card.Controls.Add(CreateSectionTitle("TWEAKS", 14));
 
             autoRotateCheckBox = new CheckBox
@@ -490,6 +563,14 @@ namespace SolidTweaks.Presentation
             FlowLayoutPanel offsetRow = CreateShortcutRow(
                 "Offset Entities", 212, helpImage,
                 out offsetEntitiesShortcutLink, out offsetHelpIcon, out offsetEntitiesShortcutRequirementLabel);
+            tweakOptionControls.Add(fixRow);
+            tweakOptionControls.Add(constructionRow);
+            tweakOptionControls.Add(measureRow);
+            tweakOptionControls.Add(offsetRow);
+            foreach (Control optionControl in tweakOptionControls)
+            {
+                optionControl.Visible = false;
+            }
 
             Control autoRotateHelpIcon = CreateHelpIcon(autoRotateCheckBox, 42, helpImage);
             Control spaceHelpIcon = CreateHelpIcon(spaceNormalToCheckBox, 76, helpImage);
@@ -512,7 +593,143 @@ namespace SolidTweaks.Presentation
             card.Controls.Add(constructionRow);
             card.Controls.Add(measureRow);
             card.Controls.Add(offsetRow);
+            optionsButton = CreateTweakOptionsButton(card);
+            card.Controls.Add(optionsButton);
             return card;
+        }
+
+        private Button CreateTweakOptionsButton(Panel card)
+        {
+            Button button = CreateOptionsButton(card, 80);
+            button.AccessibleName = UiText.Get("Show shortcut options");
+            return button;
+        }
+
+        private static Button CreateOptionsButton(Panel card, int compactTop)
+        {
+            var button = new Button
+            {
+                Text = UiText.Get("+ Options"),
+                Width = 88,
+                Height = 24,
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                Location = new Point(card.Width - 106, compactTop),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = UiPalette.Surface,
+                ForeColor = UiPalette.Accent,
+                Cursor = Cursors.Hand
+            };
+            button.FlatAppearance.BorderColor = UiPalette.Border;
+            button.FlatAppearance.BorderSize = 1;
+            card.Resize += delegate
+            {
+                button.Left = card.ClientSize.Width - button.Width - 18;
+            };
+            return button;
+        }
+
+        private void TweakOptionsButtonOnClick(object sender, EventArgs e)
+        {
+            tweakOptionsExpanded = !tweakOptionsExpanded;
+            foreach (Control optionControl in tweakOptionControls)
+            {
+                optionControl.Visible = tweakOptionsExpanded;
+            }
+            tweaksCard.Height = tweakOptionsExpanded ? 252 : 116;
+            UpdateTweakOptionsButton();
+            // O Paint do cartão desenha a borda na altura atual. Ao expandir,
+            // uma repintura parcial podia preservar a antiga borda inferior de
+            // 116 px como uma linha atravessando as opções. Limpa e redesenha
+            // toda a superfície depois de alterar a altura.
+            tweaksCard.Invalidate(true);
+            tweaksCard.Refresh();
+            contentPanel.PerformLayout();
+            UpdateContentScrolling();
+        }
+
+        private void UpdateContentScrolling()
+        {
+            int desiredContentHeight = contentPanel.Padding.Vertical;
+            foreach (Control card in contentPanel.Controls)
+            {
+                desiredContentHeight += card.Height + card.Margin.Vertical;
+            }
+            bool scrollingRequired = desiredContentHeight > contentPanel.ClientSize.Height;
+            contentPanel.AutoScrollMinSize = scrollingRequired
+                ? new Size(0, desiredContentHeight)
+                : Size.Empty;
+            contentPanel.AutoScroll = scrollingRequired;
+            contentPanel.PerformLayout();
+        }
+
+        private void AdjustFormHeightToContent()
+        {
+            if (adjustingFormHeight || IsDisposed || Disposing)
+            {
+                return;
+            }
+
+            adjustingFormHeight = true;
+            try
+            {
+                int desiredContentHeight = contentPanel.Padding.Vertical;
+                foreach (Control card in contentPanel.Controls)
+                {
+                    // Os cartões são criados antes de o Form ficar visível;
+                    // nesse momento Control.Visible também reflete a
+                    // invisibilidade do pai. Todos os cartões do painel
+                    // principal participam do layout e, portanto, do cálculo.
+                    desiredContentHeight += card.Height + card.Margin.Vertical;
+                }
+
+                int desiredClientHeight =
+                    headerPanel.Height + mainStatusStrip.Height + desiredContentHeight;
+                Rectangle workingArea = Screen.FromControl(this).WorkingArea;
+                int nonClientHeight = Math.Max(0, Height - ClientSize.Height);
+                const int screenMargin = 8;
+                int maximumClientHeight = Math.Max(
+                    420,
+                    workingArea.Height - nonClientHeight - screenMargin);
+                int targetClientHeight = Math.Min(desiredClientHeight, maximumClientHeight);
+
+                if (ClientSize.Height != targetClientHeight)
+                {
+                    ClientSize = new Size(ClientSize.Width, targetClientHeight);
+                }
+
+                bool scrollingRequired = desiredContentHeight > contentPanel.ClientSize.Height;
+                contentPanel.AutoScrollMinSize = scrollingRequired
+                    ? new Size(0, desiredContentHeight)
+                    : Size.Empty;
+                contentPanel.AutoScroll = scrollingRequired;
+                contentPanel.PerformLayout();
+
+                if (IsHandleCreated)
+                {
+                    int minimumTop = workingArea.Top + screenMargin / 2;
+                    int maximumBottom = workingArea.Bottom - screenMargin / 2;
+                    if (Bottom > maximumBottom)
+                    {
+                        Top = Math.Max(minimumTop, maximumBottom - Height);
+                    }
+                    else if (Top < minimumTop)
+                    {
+                        Top = minimumTop;
+                    }
+                }
+            }
+            finally
+            {
+                adjustingFormHeight = false;
+            }
+        }
+
+        private void UpdateTweakOptionsButton()
+        {
+            tweakOptionsButton.Text = UiText.Get(tweakOptionsExpanded ? "- Options" : "+ Options");
+            tweakOptionsButton.AccessibleName = UiText.Get(
+                tweakOptionsExpanded ? "Hide shortcut options" : "Show shortcut options");
+            tweakOptionsButton.Top = tweakOptionsExpanded ? 12 : 80;
         }
 
         private FlowLayoutPanel CreateShortcutRow(
@@ -666,6 +883,133 @@ namespace SolidTweaks.Presentation
             return card;
         }
 
+        private Panel BuildVisualCard(
+            ToolTip toolTip,
+            Image helpImage,
+            out Control realViewHelpControl,
+            out CheckBox realViewCheckBox,
+            out CheckBox enhancedGraphicsPerformanceCheckBox,
+            out CheckBox gpuSilhouetteEdgesCheckBox,
+            out CheckBox fullAntialiasingCheckBox,
+            out Label gpuSilhouetteRequirementLabel,
+            out Button optionsButton)
+        {
+            var card = CreateCard(82);
+            card.Controls.Add(TrackText(CreateSectionTitle(UiText.Get("VISUAL"), 14), "VISUAL"));
+
+            realViewCheckBox = CreateVisualCheckBox("RealView", 42);
+            realViewHelpControl = CreateHelpIcon(realViewCheckBox, 42, helpImage);
+            realViewHelpToolTip.SetToolTip(realViewHelpControl, UiText.Get(RealViewHelpDescription));
+
+            enhancedGraphicsPerformanceCheckBox = CreateVisualCheckBox(
+                "Enhanced Graphics Performance", 76);
+            Control enhancedHelp = CreateHelpIcon(enhancedGraphicsPerformanceCheckBox, 76, helpImage);
+            TrackToolTip(
+                enhancedHelp,
+                "Enables the enhanced graphics pipeline in SOLIDWORKS.");
+
+            gpuSilhouetteEdgesCheckBox = CreateVisualCheckBox("GPU silhouette edges", 110);
+            Control silhouetteHelp = CreateHelpIcon(gpuSilhouetteEdgesCheckBox, 110, helpImage);
+            gpuSilhouetteRequirementLabel = CreateRequirementLabel(silhouetteHelp, 110);
+            TrackToolTip(
+                silhouetteHelp,
+                "Uses GPU acceleration for silhouette edges. Enhanced Graphics Performance must also be enabled.");
+
+            fullAntialiasingCheckBox = CreateVisualCheckBox("Full antialiasing", 144);
+            Control antialiasingHelp = CreateHelpIcon(fullAntialiasingCheckBox, 144, helpImage);
+            TrackToolTip(
+                antialiasingHelp,
+                "Applies full-scene antialiasing instead of antialiasing only shaded edges and sketches.");
+
+            visualOptionControls.Add(enhancedGraphicsPerformanceCheckBox);
+            visualOptionControls.Add(enhancedHelp);
+            visualOptionControls.Add(gpuSilhouetteEdgesCheckBox);
+            visualOptionControls.Add(silhouetteHelp);
+            visualOptionControls.Add(gpuSilhouetteRequirementLabel);
+            visualOptionControls.Add(fullAntialiasingCheckBox);
+            visualOptionControls.Add(antialiasingHelp);
+            foreach (Control optionControl in visualOptionControls)
+            {
+                optionControl.Visible = false;
+            }
+
+            card.Controls.Add(realViewCheckBox);
+            card.Controls.Add(realViewHelpControl);
+            card.Controls.Add(enhancedGraphicsPerformanceCheckBox);
+            card.Controls.Add(enhancedHelp);
+            card.Controls.Add(gpuSilhouetteEdgesCheckBox);
+            card.Controls.Add(silhouetteHelp);
+            card.Controls.Add(gpuSilhouetteRequirementLabel);
+            card.Controls.Add(fullAntialiasingCheckBox);
+            card.Controls.Add(antialiasingHelp);
+            optionsButton = CreateOptionsButton(card, 46);
+            optionsButton.AccessibleName = UiText.Get("Show visual options");
+            card.Controls.Add(optionsButton);
+            return card;
+        }
+
+        private void VisualOptionsButtonOnClick(object sender, EventArgs e)
+        {
+            visualOptionsExpanded = !visualOptionsExpanded;
+            foreach (Control optionControl in visualOptionControls)
+            {
+                optionControl.Visible = visualOptionsExpanded;
+            }
+            visualCard.Height = visualOptionsExpanded ? 184 : 82;
+            UpdateVisualRequirementIndicator();
+            UpdateVisualOptionsButton();
+            visualCard.Invalidate(true);
+            visualCard.Refresh();
+            contentPanel.PerformLayout();
+            UpdateContentScrolling();
+            if (visualOptionsExpanded)
+            {
+                // A barra e o DisplayRectangle só atingem o tamanho definitivo
+                // depois que o evento do botão termina. Rolar imediatamente
+                // parava antes da última opção. Adia para o próximo ciclo da UI
+                // e usa o final real do conteúdo.
+                BeginInvoke(new Action(ScrollExpandedVisualBlockToBottom));
+            }
+        }
+
+        private void ScrollExpandedVisualBlockToBottom()
+        {
+            if (!visualOptionsExpanded || IsDisposed || Disposing)
+            {
+                return;
+            }
+            contentPanel.PerformLayout();
+            contentPanel.ScrollControlIntoView(visualCard);
+            int bottomValue = Math.Max(
+                contentPanel.VerticalScroll.Minimum,
+                contentPanel.VerticalScroll.Maximum - contentPanel.VerticalScroll.LargeChange + 1);
+            contentPanel.VerticalScroll.Value = bottomValue;
+            contentPanel.PerformLayout();
+            contentPanel.Update();
+        }
+
+        private void UpdateVisualOptionsButton()
+        {
+            visualOptionsButton.Text = UiText.Get(visualOptionsExpanded ? "- Options" : "+ Options");
+            visualOptionsButton.AccessibleName = UiText.Get(
+                visualOptionsExpanded ? "Hide visual options" : "Show visual options");
+            visualOptionsButton.Top = visualOptionsExpanded ? 12 : 46;
+        }
+
+        private CheckBox CreateVisualCheckBox(string englishText, int top)
+        {
+            var checkBox = new CheckBox
+            {
+                AutoSize = true,
+                Location = new Point(20, top),
+                Text = UiText.Get(englishText),
+                Font = new Font("Segoe UI Semibold", 11F),
+                ForeColor = UiPalette.Text,
+                Cursor = Cursors.Hand
+            };
+            return TrackText(checkBox, englishText);
+        }
+
         private static Button CreateActionButton(string text, Panel card)
         {
             var button = new Button
@@ -762,6 +1106,83 @@ namespace SolidTweaks.Presentation
             helpToolTip.SetToolTip(control, UiText.Get(english));
         }
 
+        private void RealViewHelpToolTipOnPopup(object sender, PopupEventArgs e)
+        {
+            const int width = 370;
+            const int padding = 12;
+            const int titleGap = 4;
+            const int imageGap = 10;
+            int contentWidth = width - (padding * 2);
+
+            using (var titleFont = new Font(Font, FontStyle.Bold))
+            {
+                Size titleSize = TextRenderer.MeasureText(
+                    UiText.Get("Help"),
+                    titleFont,
+                    new Size(contentWidth, 0),
+                    TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
+                Size bodySize = TextRenderer.MeasureText(
+                    UiText.Get(RealViewHelpDescription),
+                    Font,
+                    new Size(contentWidth, 0),
+                    TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
+                int height = padding
+                    + titleSize.Height
+                    + titleGap
+                    + bodySize.Height
+                    + imageGap
+                    + realViewHelpImage.Height
+                    + padding;
+                e.ToolTipSize = new Size(width, height);
+            }
+        }
+
+        private void RealViewHelpToolTipOnDraw(object sender, DrawToolTipEventArgs e)
+        {
+            const int padding = 12;
+            const int titleGap = 4;
+            const int imageGap = 10;
+            int contentWidth = e.Bounds.Width - (padding * 2);
+            int y = e.Bounds.Top + padding;
+
+            e.DrawBackground();
+            e.DrawBorder();
+
+            using (var titleFont = new Font(Font, FontStyle.Bold))
+            {
+                Size titleSize = TextRenderer.MeasureText(
+                    UiText.Get("Help"),
+                    titleFont,
+                    new Size(contentWidth, 0),
+                    TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
+                TextRenderer.DrawText(
+                    e.Graphics,
+                    UiText.Get("Help"),
+                    titleFont,
+                    new Rectangle(e.Bounds.Left + padding, y, contentWidth, titleSize.Height),
+                    SystemColors.InfoText,
+                    TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
+                y += titleSize.Height + titleGap;
+            }
+
+            Size bodySize = TextRenderer.MeasureText(
+                UiText.Get(RealViewHelpDescription),
+                Font,
+                new Size(contentWidth, 0),
+                TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
+            TextRenderer.DrawText(
+                e.Graphics,
+                UiText.Get(RealViewHelpDescription),
+                Font,
+                new Rectangle(e.Bounds.Left + padding, y, contentWidth, bodySize.Height),
+                SystemColors.InfoText,
+                TextFormatFlags.NoPadding | TextFormatFlags.WordBreak);
+            y += bodySize.Height + imageGap;
+
+            int imageX = e.Bounds.Left + ((e.Bounds.Width - realViewHelpImage.Width) / 2);
+            e.Graphics.DrawImageUnscaled(realViewHelpImage, imageX, y);
+        }
+
         private static string CurrentLanguageDisplayName()
         {
             return UiLanguageSelector.Current == UiLanguage.Portuguese ? "Português" : "English";
@@ -806,6 +1227,7 @@ namespace SolidTweaks.Presentation
             {
                 helpToolTip.SetToolTip(binding.Key, UiText.Get(binding.Value));
             }
+            realViewHelpToolTip.SetToolTip(realViewHelpControl, UiText.Get(RealViewHelpDescription));
             foreach (KeyValuePair<Control, Control> binding in helpIconBindings)
             {
                 Size preferredSize = binding.Key.GetPreferredSize(Size.Empty);
@@ -822,12 +1244,15 @@ namespace SolidTweaks.Presentation
 
             helpToolTip.ToolTipTitle = UiText.Get("Help");
             languageLink.Text = CurrentLanguageDisplayName();
+            UpdateTweakOptionsButton();
+            UpdateVisualOptionsButton();
             RefreshShortcutLabels();
             solidWorksValue.Text = solidWorks.Version;
 
             bool connected = solidWorks.IsConnected;
             bool hasActiveDocument = connected && solidWorks.HasActiveDocument;
             UpdateRequirementIndicators(connected, hasActiveDocument);
+            UpdateVisualRequirementIndicator();
             ApplyConnectionState(connected);
         }
 
@@ -837,6 +1262,7 @@ namespace SolidTweaks.Presentation
             syncingUi = true;
             exportStepCheckBox.Checked = exportStep.Read();
             exportSheetMetalDxfCheckBox.Checked = exportSheetMetalDxf.Read();
+            RefreshVisualCheckBoxes();
             RefreshShortcutLabels();
             syncingUi = false;
             SetStatus(UiText.Get("Reading system information..."), UiPalette.Muted);
@@ -1295,6 +1721,228 @@ namespace SolidTweaks.Presentation
             ChangeCommandFeature(exportSheetMetalDxf, exportSheetMetalDxfCheckBox);
         }
 
+        private void RealViewCheckBoxOnCheckedChanged(object sender, EventArgs e)
+        {
+            ChangeVisualFeature(realView, realViewCheckBox);
+        }
+
+        private void EnhancedGraphicsPerformanceCheckBoxOnCheckedChanged(object sender, EventArgs e)
+        {
+            if (syncingUi)
+            {
+                return;
+            }
+
+            bool requested = enhancedGraphicsPerformanceCheckBox.Checked;
+            bool previousEnhanced = enhancedGraphicsPerformance.Read();
+            bool previousSilhouette = gpuSilhouetteEdges.Read();
+            SetVisualControlsEnabled(false);
+            SetStatus(
+                requested
+                    ? UiText.Format("Enabling {0}...", enhancedGraphicsPerformance.DisplayName)
+                    : UiText.Format("Disabling {0}...", enhancedGraphicsPerformance.DisplayName),
+                UiPalette.Accent);
+            Refresh();
+
+            try
+            {
+                if (requested)
+                {
+                    enhancedGraphicsPerformance.Apply();
+                }
+                else
+                {
+                    if (previousSilhouette)
+                    {
+                        gpuSilhouetteEdges.Revert();
+                    }
+                    enhancedGraphicsPerformance.Revert();
+                }
+                if (enhancedGraphicsPerformance.Read() != requested ||
+                    (!requested && gpuSilhouetteEdges.Read()))
+                {
+                    throw StateConfirmationException();
+                }
+                RefreshVisualCheckBoxes();
+                SetVisualSuccessStatus(enhancedGraphicsPerformance, requested);
+            }
+            catch (Exception exception)
+            {
+                ApplicationLog.Error("Failed to change Enhanced Graphics Performance.", exception);
+                TryRestoreVisualFeature(enhancedGraphicsPerformance, previousEnhanced);
+                TryRestoreVisualFeature(gpuSilhouetteEdges, previousSilhouette);
+                RefreshVisualCheckBoxes();
+                SetStatus(UiText.Format("Could not apply the visual change: {0}", FriendlyMessage(exception)), UiPalette.Error);
+            }
+            finally
+            {
+                SetVisualControlsEnabled(true);
+            }
+        }
+
+        private void GpuSilhouetteEdgesCheckBoxOnCheckedChanged(object sender, EventArgs e)
+        {
+            if (!syncingUi && gpuSilhouetteEdgesCheckBox.Checked &&
+                !enhancedGraphicsPerformance.Read())
+            {
+                syncingUi = true;
+                gpuSilhouetteEdgesCheckBox.Checked = false;
+                syncingUi = false;
+                SetStatus(
+                    UiText.Get("Enable Enhanced Graphics Performance before enabling GPU silhouette edges."),
+                    UiPalette.Warning);
+                return;
+            }
+            ChangeVisualFeature(gpuSilhouetteEdges, gpuSilhouetteEdgesCheckBox);
+        }
+
+        private void FullAntialiasingCheckBoxOnCheckedChanged(object sender, EventArgs e)
+        {
+            ChangeVisualFeature(fullAntialiasing, fullAntialiasingCheckBox);
+        }
+
+        private void ChangeVisualFeature(ITweak feature, CheckBox checkBox)
+        {
+            if (syncingUi)
+            {
+                return;
+            }
+
+            bool requested = checkBox.Checked;
+            bool previous;
+            try
+            {
+                previous = feature.Read();
+            }
+            catch (Exception exception)
+            {
+                ApplicationLog.Error("Could not read visual feature " + feature.Id + ".", exception);
+                syncingUi = true;
+                checkBox.Checked = false;
+                syncingUi = false;
+                SetStatus(UiText.Format("Could not apply the visual change: {0}", FriendlyMessage(exception)), UiPalette.Error);
+                return;
+            }
+
+            SetVisualControlsEnabled(false);
+            SetStatus(
+                requested
+                    ? UiText.Format("Enabling {0}...", feature.DisplayName)
+                    : UiText.Format("Disabling {0}...", feature.DisplayName),
+                UiPalette.Accent);
+            Refresh();
+            try
+            {
+                if (requested)
+                {
+                    feature.Apply();
+                }
+                else
+                {
+                    feature.Revert();
+                }
+                if (feature.Read() != requested)
+                {
+                    throw StateConfirmationException();
+                }
+                RefreshVisualCheckBoxes();
+                SetVisualSuccessStatus(feature, requested);
+            }
+            catch (Exception exception)
+            {
+                ApplicationLog.Error("Failed to change visual feature " + feature.Id + ".", exception);
+                // EnableRealView já é transacional: em caso de falha ele restaura
+                // os dois ramos da AllowList e remove o backup incompleto. Uma
+                // segunda reversão aqui apagaria valores que acabaram de ser
+                // restaurados quando o estado anterior era desabilitado.
+                if (previous || !object.ReferenceEquals(feature, realView))
+                {
+                    TryRestoreVisualFeature(feature, previous);
+                }
+                RefreshVisualCheckBoxes();
+                SetStatus(UiText.Format("Could not apply the visual change: {0}", FriendlyMessage(exception)), UiPalette.Error);
+            }
+            finally
+            {
+                SetVisualControlsEnabled(true);
+            }
+        }
+
+        private void RefreshVisualCheckBoxes()
+        {
+            bool wasSyncing = syncingUi;
+            syncingUi = true;
+            try
+            {
+                try
+                {
+                    realViewCheckBox.Checked = realView.Read();
+                }
+                catch (Exception exception)
+                {
+                    realViewCheckBox.Checked = false;
+                    ApplicationLog.Warning("RealView state could not be read: " + exception.Message);
+                }
+                enhancedGraphicsPerformanceCheckBox.Checked = enhancedGraphicsPerformance.Read();
+                gpuSilhouetteEdgesCheckBox.Checked = gpuSilhouetteEdges.Read();
+                fullAntialiasingCheckBox.Checked = fullAntialiasing.Read();
+            }
+            finally
+            {
+                syncingUi = wasSyncing;
+            }
+            gpuSilhouetteEdgesCheckBox.Enabled =
+                enhancedGraphicsPerformanceCheckBox.Checked || gpuSilhouetteEdgesCheckBox.Checked;
+            UpdateVisualRequirementIndicator();
+        }
+
+        private void SetVisualControlsEnabled(bool enabled)
+        {
+            realViewCheckBox.Enabled = enabled;
+            enhancedGraphicsPerformanceCheckBox.Enabled = enabled;
+            gpuSilhouetteEdgesCheckBox.Enabled = enabled &&
+                (enhancedGraphicsPerformanceCheckBox.Checked || gpuSilhouetteEdgesCheckBox.Checked);
+            fullAntialiasingCheckBox.Enabled = enabled;
+            UpdateVisualRequirementIndicator();
+        }
+
+        private void UpdateVisualRequirementIndicator()
+        {
+            SetRequirement(
+                gpuSilhouetteRequirementLabel,
+                !visualOptionsExpanded || enhancedGraphicsPerformanceCheckBox.Checked
+                    ? null
+                    : UiText.Get("Requires Enhanced Graphics Performance"));
+        }
+
+        private void SetVisualSuccessStatus(ITweak feature, bool enabled)
+        {
+            SetStatus(
+                enabled
+                    ? UiText.Format("{0} enabled. Restart SOLIDWORKS if it is open.", feature.DisplayName)
+                    : UiText.Format("{0} disabled. Restart SOLIDWORKS if it is open.", feature.DisplayName),
+                enabled ? UiPalette.Success : UiPalette.Muted);
+        }
+
+        private static void TryRestoreVisualFeature(ITweak feature, bool enabled)
+        {
+            try
+            {
+                if (enabled)
+                {
+                    feature.Apply();
+                }
+                else
+                {
+                    feature.Revert();
+                }
+            }
+            catch (Exception exception)
+            {
+                ApplicationLog.Error("Could not restore visual feature " + feature.Id + ".", exception);
+            }
+        }
+
         private async void UpdateButtonOnClick(object sender, EventArgs e)
         {
             if (updateInProgress || !commandFeatureRegistration.IsUpdateAvailable())
@@ -1322,6 +1970,7 @@ namespace SolidTweaks.Presentation
             autoRotateCheckBox.Enabled = false;
             spaceNormalToCheckBox.Enabled = false;
             SetShortcutLinksEnabled(false);
+            SetVisualControlsEnabled(false);
             string executablePath = null;
             bool closedByUpdater = false;
             bool restarted = false;
@@ -1412,6 +2061,7 @@ namespace SolidTweaks.Presentation
                 autoRotateCheckBox.Enabled = connected;
                 spaceNormalToCheckBox.Enabled = connected && solidWorks.HasActiveDocument;
                 SetShortcutLinksEnabled(connected && solidWorks.HasActiveDocument && shortcutMigration.IsComplete);
+                SetVisualControlsEnabled(true);
             }
         }
 

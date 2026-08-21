@@ -25,6 +25,8 @@ O registro `HKCU\Software\SolidTweaks\Features` guarda somente o último resulta
 
 ### Atalhos configuráveis
 
+Os atalhos permanecem recolhidos por padrão no bloco **Tweaks**. O botão **+ Opções** expande o bloco para mostrar os quatro atalhos e **- Opções** volta ao modo compacto.
+
 **Tornar fixo**, **Linha de construção**, **Medição** e **Offset de entidades** possuem um label clicável que mostra `Definir tecla` ou a entrada atribuída:
 
 - o diálogo aceita uma única tecla sem modificadores, Mouse 3, Mouse 4 ou Mouse 5;
@@ -85,6 +87,19 @@ O botão **Exportar Chapas DXF**, com o ícone `Exportar_DXF.png`, usa diretamen
 
 O comando é executado dentro do SOLIDWORKS pela guia **Solid Tweaks**. O formulário principal apenas habilita ou desabilita sua presença na guia.
 
+### Visual
+
+O bloco **Visual** reúne quatro ajustes persistentes do registro do SOLIDWORKS 2025. O estado dos checkboxes é lido diretamente das configurações efetivas, e não de uma cópia mantida pelo Solid Tweaks.
+
+Por padrão, somente **RealView** permanece visível. **+ Opções** expande os outros três ajustes usando a rolagem vertical, sem redimensionar o Form, e **- Opções** recolhe o bloco novamente.
+
+- **RealView** identifica primeiro o renderer que o próprio SOLIDWORKS registrou e usa o adaptador principal do Windows somente como alternativa. A implementação cria as entradas específicas de NVIDIA, AMD ou Intel em `AllowList\Gl2Shaders` e na pasta de desempenho do fabricante. Ao desabilitar, os valores existentes antes da ativação são restaurados.
+- **Desempenho gráfico aprimorado** controla `Use Performance Pipeline 2020`.
+- **Arestas de silhueta por GPU** controla `Use GPU Silhouette Edges` e só pode ser habilitado junto com o Desempenho gráfico aprimorado. Desabilitar o pipeline também desabilita as arestas aceleradas.
+- **Antialiasing completo** ativa o antialiasing da cena completa e desativa o modo limitado a arestas sombreadas.
+
+Os ajustes são gravados no perfil do usuário do Windows. Quando o SOLIDWORKS estiver aberto, reinicie-o para que todo o pipeline gráfico seja recarregado.
+
 ## Requisitos
 
 - Windows 10/11 64 bits
@@ -133,5 +148,7 @@ A compilação `Release` é portátil: a pasta de saída contém somente `SolidT
 Os recursos que adicionam botões compartilham a guia `Solid Tweaks`. Ela permanece instalada enquanto ao menos um desses recursos estiver habilitado e só é removida quando todos forem desmarcados. O registro também elimina identidades antigas do add-in para impedir conflitos nas próximas extensões.
 
 Toda linha de recurso que possua um pré-requisito deve usar o indicador visual reutilizável ao lado do ícone de ajuda. O aviso permanece oculto quando o recurso está disponível e, quando bloqueado, informa em vermelho e de forma breve o que falta para habilitá-lo.
+
+Somente durante a inicialização, o formulário calcula sua altura a partir dos cartões, preserva uma margem entre o último cartão e a barra de status e limita o crescimento à área útil do monitor. Novos cartões declarados no painel principal entram automaticamente nesse cálculo inicial. Depois que a janela abre, expandir qualquer botão **+ Opções** nunca altera seu tamanho: o conteúdo adicional usa rolagem vertical e, ao recolher, a rolagem desaparece quando não é mais necessária.
 
 Novos recursos não devem depender do aplicativo Solid Tweaks permanecer aberto. O listener de mouse é carregado e descarregado junto com o add-in do SOLIDWORKS e ignora todas as outras aplicações.

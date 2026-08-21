@@ -55,12 +55,14 @@
     <Compile Include="Features\ExportStepTweak.cs" />
     <Compile Include="Features\ExportSheetMetalDxfTweak.cs" />
     <Compile Include="Features\SpaceNormalToTweak.cs" />
+    <Compile Include="Features\VisualTweaks.cs" />
     <Compile Include="Infrastructure\Diagnostics\ApplicationLog.cs" />
     <Compile Include="Infrastructure\Persistence\FeatureStateStore.cs" />
     <Compile Include="Infrastructure\SolidWorks\SolidWorksKeyboardShortcutService.cs" />
     <Compile Include="Infrastructure\SolidWorks\SolidWorksAddinRegistrationService.cs" />
     <Compile Include="Infrastructure\SolidWorks\SolidWorksPreferenceResolver.cs" />
     <Compile Include="Infrastructure\SolidWorks\SolidWorksService.cs" />
+    <Compile Include="Infrastructure\SolidWorks\VisualSettingsService.cs" />
     <Compile Include="Infrastructure\SystemInfo\SystemInfoService.cs" />
     <Compile Include="Presentation\MainForm.cs" />
     <Compile Include="Presentation\ShortcutCaptureDialog.cs" />
@@ -79,6 +81,9 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Help.png" />
+    <EmbeddedResource Include="Help_RealView.png">
+      <LogicalName>SolidTweaks.Help.RealView.png</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="Logo_CG3D.png">
       <LogicalName>SolidTweaks.Brand.Logo_CG3D.png</LogicalName>
     </EmbeddedResource>
