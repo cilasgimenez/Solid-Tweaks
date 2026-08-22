@@ -206,6 +206,7 @@ namespace SolidTweaks.Shared
                 { "Installing the new add-in version...", "Instalando a nova versão do add-in..." },
                 { "Update installed. Reopening SOLIDWORKS...", "Atualização instalada. Reabrindo o SOLIDWORKS..." },
                 { "Solid Tweaks was updated successfully. Previous features were restored.", "Solid Tweaks atualizado com sucesso. Recursos anteriores restaurados." },
+                { "Solid Tweaks was updated successfully. No tab features are enabled.", "Solid Tweaks atualizado com sucesso. Nenhum recurso da guia está habilitado." },
                 { "The update was installed, but the tab could not yet be confirmed in SOLIDWORKS.", "A atualização foi instalada, mas a guia ainda não pôde ser confirmada no SOLIDWORKS." },
                 { "Could not update: {0}", "Não foi possível atualizar: {0}" },
                 { "SOLIDWORKS is running but did not accept the connection required to close it safely.", "O SOLIDWORKS está em execução, mas não aceitou a conexão necessária para fechá-lo com segurança." },

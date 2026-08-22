@@ -12,20 +12,21 @@ namespace SolidTweaks.Infrastructure.SolidWorks
 {
     internal sealed class SolidWorksAddinRegistrationService
     {
-        internal const string AddinGuid = "{6330361C-6CCC-4DA1-890D-D6685BC8DBF0}";
-        private const string LegacyAddinGuidV111 = "{F27105A6-4344-4081-B657-7E421FF0D6ED}";
-        private const string LegacyAddinGuidV110 = "{E8327E13-5F74-41DB-9234-47994B1DDC75}";
-        private const string LegacyAddinGuidV19 = "{0E9FA022-92A6-4C34-8915-7512514F3B05}";
-        private const string LegacyAddinGuidV18 = "{131EB904-E091-4C86-95B0-B41E4F9869F0}";
-        private const string LegacyAddinGuid = "{7D87C1B8-777D-4D69-BD53-6BD88C2F3E48}";
-        private const string LegacyAddinGuidV12 = "{7271ABC6-6994-4C09-A8E1-CE231967E48A}";
-        private const string LegacyAddinGuidV13 = "{0C6C9A95-EE42-40AE-928D-D31949D7251E}";
-        private const string LegacyAddinGuidV14 = "{DF9D52E8-E929-42A4-A742-DB8F54B4F984}";
-        private const string LegacyAddinGuidV15 = "{ADB6989A-A69B-4A6B-B979-37527988BB15}";
-        private const string LegacyAddinGuidV16 = "{D52DA99A-B23B-4342-83F6-D9779C252217}";
-        private const string LegacyAddinGuidV17 = "{C7D41943-0042-4140-93DE-7523EEDE7684}";
+        internal const string AddinGuid = SolidTweaksAddinIdentity.CurrentGuid;
+        private const string LegacyAddinGuidV113 = SolidTweaksAddinIdentity.LegacyGuidV113;
+        private const string LegacyAddinGuidV111 = SolidTweaksAddinIdentity.LegacyGuidV111;
+        private const string LegacyAddinGuidV110 = SolidTweaksAddinIdentity.LegacyGuidV110;
+        private const string LegacyAddinGuidV19 = SolidTweaksAddinIdentity.LegacyGuidV19;
+        private const string LegacyAddinGuidV18 = SolidTweaksAddinIdentity.LegacyGuidV18;
+        private const string LegacyAddinGuid = SolidTweaksAddinIdentity.LegacyGuid;
+        private const string LegacyAddinGuidV12 = SolidTweaksAddinIdentity.LegacyGuidV12;
+        private const string LegacyAddinGuidV13 = SolidTweaksAddinIdentity.LegacyGuidV13;
+        private const string LegacyAddinGuidV14 = SolidTweaksAddinIdentity.LegacyGuidV14;
+        private const string LegacyAddinGuidV15 = SolidTweaksAddinIdentity.LegacyGuidV15;
+        private const string LegacyAddinGuidV16 = SolidTweaksAddinIdentity.LegacyGuidV16;
+        private const string LegacyAddinGuidV17 = SolidTweaksAddinIdentity.LegacyGuidV17;
         private const string PackagedAddinResourceName =
-            "SolidTweaks.Embedded.SolidTweaks.SolidWorksAddin.v1_13.dll";
+            "SolidTweaks.Embedded.SolidTweaks.SolidWorksAddin.v1_14.dll";
         private readonly SolidWorksService solidWorks;
 
         public SolidWorksAddinRegistrationService(SolidWorksService solidWorks)
@@ -85,13 +86,6 @@ namespace SolidTweaks.Infrastructure.SolidWorks
                 return;
             }
             MigrateLegacyFeatureState();
-            if (!SolidTweaksFeatureSettings.HasAnyAddinFeatureEnabled())
-            {
-                LogRegistrationState("Update blocked with no configured features");
-                throw new UserFacingException(
-                    "No Solid Tweaks tab feature is configured for the update.",
-                    UiText.Get("No Solid Tweaks tab feature is configured for the update."));
-            }
             InstallOrRefresh();
             if (!IsRegistrationCurrent() || IsUpdateAvailable())
             {
@@ -147,9 +141,15 @@ namespace SolidTweaks.Infrastructure.SolidWorks
             ApplicationLog.Info("Starting installation/repair. Destination=" + DeployedAddinPath + ".");
             EnsurePackagedAddinResource();
 
-            if (!IsRegistrationCurrent())
+            if (IsComRegistrationCurrent() && !IsStartupEnabled())
             {
-                ApplicationLog.Info("Current registration does not match the package. Unloading known versions.");
+                SetStartupEnabled(AddinGuid, true);
+                ApplicationLog.Info("The installed add-in was enabled for startup again.");
+            }
+
+            if (!IsRegistrationCurrent() || IsAnyLegacyAddinRegistered())
+            {
+                ApplicationLog.Info("Registration is outdated or contains legacy entries. Unloading known versions.");
                 UnloadKnownAddins();
                 DeployAddin();
                 ApplicationLog.Info("DLL deployed. Starting elevated registration.");
@@ -177,12 +177,23 @@ namespace SolidTweaks.Infrastructure.SolidWorks
 
         public void Uninstall()
         {
-            UnloadKnownAddins();
-            if (IsRegistered())
+            if (solidWorks.IsConnected)
             {
+                RemoveKnownAddinUserInterfaces();
+                SetKnownAddinStartupEnabled(false);
+                ApplicationLog.Info(
+                    "Add-in interface removed. The loaded component will remain dormant until SOLIDWORKS closes.");
+                return;
+            }
+
+            UnloadKnownAddins();
+            if (IsAnyKnownAddinRegistered())
+            {
+                EnsurePackagedAddinResource();
+                DeployAddin();
                 RunElevated("--unregister-addin");
             }
-            if (IsRegistered())
+            if (IsAnyKnownAddinRegistered())
             {
                 throw new UserFacingException(
                     "The removal of the Solid Tweaks tab could not be confirmed.",
@@ -197,6 +208,9 @@ namespace SolidTweaks.Infrastructure.SolidWorks
                 return;
             }
             solidWorks.RemoveAndUnloadAddin(RegisteredAddinPath ?? DeployedAddinPath, AddinGuid);
+            solidWorks.RemoveAndUnloadAddin(
+                GetRegisteredAddinPath(LegacyAddinGuidV113) ?? DeployedAddinPathV113,
+                LegacyAddinGuidV113);
             solidWorks.RemoveAndUnloadAddin(
                 LegacyRegisteredAddinPathV111 ?? LegacyAddinPathV111,
                 LegacyAddinGuidV111);
@@ -218,13 +232,22 @@ namespace SolidTweaks.Infrastructure.SolidWorks
                 LegacyAddinGuidV110);
         }
 
+        private void RemoveKnownAddinUserInterfaces()
+        {
+            solidWorks.RemoveAddinUserInterface(AddinGuid);
+            foreach (string legacyGuid in SolidTweaksAddinIdentity.LegacyGuids)
+            {
+                solidWorks.RemoveAddinUserInterface(legacyGuid);
+            }
+        }
+
         private void RestoreConfiguredInterface()
         {
             if (SolidTweaksFeatureSettings.HasAnyAddinFeatureEnabled())
             {
                 InstallOrRefresh();
             }
-            else if (IsRegistered())
+            else if (IsAnyKnownAddinRegistered())
             {
                 Uninstall();
             }
@@ -255,18 +278,17 @@ namespace SolidTweaks.Infrastructure.SolidWorks
                 return;
             }
 
-            bool stepEnabled = SolidTweaksFeatureSettings.Read(
-                SolidTweaksFeatureSettings.ExportStepFeatureId,
-                false);
-            bool dxfEnabled = SolidTweaksFeatureSettings.Read(
-                SolidTweaksFeatureSettings.ExportDxfFeatureId,
-                false);
-            if (stepEnabled || dxfEnabled)
+            if (SolidTweaksFeatureSettings.HasValue(SolidTweaksFeatureSettings.ExportStepFeatureId) ||
+                SolidTweaksFeatureSettings.HasValue(SolidTweaksFeatureSettings.ExportDxfFeatureId))
             {
+                ApplicationLog.Info(
+                    "Existing feature choices were preserved; registered add-in state will not override explicit values.");
                 return;
             }
 
-            bool supportsBothCommands = currentRegistered || IsRegistered(LegacyAddinGuidV111);
+            bool supportsBothCommands = currentRegistered ||
+                IsRegistered(LegacyAddinGuidV113) ||
+                IsRegistered(LegacyAddinGuidV111);
             SolidTweaksFeatureSettings.Write(SolidTweaksFeatureSettings.ExportStepFeatureId, true);
             SolidTweaksFeatureSettings.Write(SolidTweaksFeatureSettings.ExportDxfFeatureId, supportsBothCommands);
             ApplicationLog.Warning(
@@ -295,17 +317,44 @@ namespace SolidTweaks.Infrastructure.SolidWorks
 
         private static bool IsAnyLegacyAddinRegistered()
         {
-            return IsRegistered(LegacyAddinGuidV111) ||
-                IsRegistered(LegacyAddinGuidV110) ||
-                IsRegistered(LegacyAddinGuidV19) ||
-                IsRegistered(LegacyAddinGuidV18) ||
-                IsRegistered(LegacyAddinGuidV17) ||
-                IsRegistered(LegacyAddinGuidV16) ||
-                IsRegistered(LegacyAddinGuidV15) ||
-                IsRegistered(LegacyAddinGuidV14) ||
-                IsRegistered(LegacyAddinGuidV13) ||
-                IsRegistered(LegacyAddinGuidV12) ||
-                IsRegistered(LegacyAddinGuid);
+            foreach (string legacyGuid in SolidTweaksAddinIdentity.LegacyGuids)
+            {
+                if (IsRegistered(legacyGuid))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        internal static bool IsAnyKnownAddinRegistered()
+        {
+            return IsRegistered() || IsAnyLegacyAddinRegistered();
+        }
+
+        internal static void RemoveKnownAddinRegistrationKeys()
+        {
+            using (RegistryKey localMachine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+            using (RegistryKey currentUser = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry64))
+            using (RegistryKey classesRoot = RegistryKey.OpenBaseKey(RegistryHive.ClassesRoot, RegistryView.Registry64))
+            {
+                RemoveAddinRegistrationKeys(localMachine, currentUser, classesRoot, AddinGuid);
+                foreach (string legacyGuid in SolidTweaksAddinIdentity.LegacyGuids)
+                {
+                    RemoveAddinRegistrationKeys(localMachine, currentUser, classesRoot, legacyGuid);
+                }
+            }
+        }
+
+        private static void RemoveAddinRegistrationKeys(
+            RegistryKey localMachine,
+            RegistryKey currentUser,
+            RegistryKey classesRoot,
+            string addinGuid)
+        {
+            localMachine.DeleteSubKeyTree(@"SOFTWARE\SOLIDWORKS\Addins\" + addinGuid, false);
+            currentUser.DeleteSubKeyTree(@"Software\SOLIDWORKS\AddInsStartup\" + addinGuid, false);
+            classesRoot.DeleteSubKeyTree(@"CLSID\" + addinGuid, false);
         }
 
         private static bool IsCurrentAddinUpdateAvailable()
@@ -342,7 +391,12 @@ namespace SolidTweaks.Infrastructure.SolidWorks
 
         private bool IsRegistrationCurrent()
         {
-            if (!File.Exists(DeployedAddinPath) || !IsRegistered() || !IsStartupEnabled() ||
+            return IsStartupEnabled() && IsComRegistrationCurrent();
+        }
+
+        private bool IsComRegistrationCurrent()
+        {
+            if (!File.Exists(DeployedAddinPath) || !IsRegistered() ||
                 !EmbeddedAddinEqualsFile(DeployedAddinPath))
             {
                 return false;
@@ -389,6 +443,34 @@ namespace SolidTweaks.Infrastructure.SolidWorks
                 false))
             {
                 return key != null && Convert.ToInt32(key.GetValue(null, 0)) == 1;
+            }
+        }
+
+        private static void SetKnownAddinStartupEnabled(bool enabled)
+        {
+            SetStartupEnabled(AddinGuid, enabled);
+            foreach (string legacyGuid in SolidTweaksAddinIdentity.LegacyGuids)
+            {
+                SetStartupEnabled(legacyGuid, enabled);
+            }
+        }
+
+        private static void SetStartupEnabled(string addinGuid, bool enabled)
+        {
+            string path = @"Software\SOLIDWORKS\AddInsStartup\" + addinGuid;
+            if (!enabled && !IsRegistered(addinGuid))
+            {
+                Registry.CurrentUser.DeleteSubKeyTree(path, false);
+                return;
+            }
+
+            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(path))
+            {
+                if (key == null)
+                {
+                    throw new InvalidOperationException("Could not change the add-in startup state.");
+                }
+                key.SetValue(null, enabled ? 1 : 0, RegistryValueKind.DWord);
             }
         }
 
@@ -478,7 +560,21 @@ namespace SolidTweaks.Infrastructure.SolidWorks
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "SolidTweaks",
                     "Addins",
-                    "1.13.0.0-" + GetPackagedAddinHash(),
+                    "1.14.0.0-" + GetPackagedAddinHash(),
+                    "SolidTweaks.SolidWorksAddin.v1_14.dll");
+            }
+        }
+
+        private static string DeployedAddinPathV113
+        {
+            get
+            {
+                string registeredPath = GetRegisteredAddinPath(LegacyAddinGuidV113);
+                return registeredPath ?? Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "SolidTweaks",
+                    "Addins",
+                    "1.13.0.0",
                     "SolidTweaks.SolidWorksAddin.v1_13.dll");
             }
         }
@@ -635,14 +731,16 @@ namespace SolidTweaks.Infrastructure.SolidWorks
 
         private static string RegisteredAddinPath
         {
-            get
+            get { return GetRegisteredAddinPath(AddinGuid); }
+        }
+
+        private static string GetRegisteredAddinPath(string addinGuid)
+        {
+            using (RegistryKey key = Registry.ClassesRoot.OpenSubKey(
+                @"CLSID\" + addinGuid + @"\InprocServer32",
+                false))
             {
-                using (RegistryKey key = Registry.ClassesRoot.OpenSubKey(
-                    @"CLSID\" + AddinGuid + @"\InprocServer32",
-                    false))
-                {
-                    return key == null ? null : CodeBaseToPath(key.GetValue("CodeBase") as string);
-                }
+                return key == null ? null : CodeBaseToPath(key.GetValue("CodeBase") as string);
             }
         }
 

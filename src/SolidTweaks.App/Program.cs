@@ -109,6 +109,16 @@ namespace SolidTweaks
                 Type addinType = assembly.GetType(
                     "SolidTweaks.SolidWorksAddin.SolidTweaksAddin",
                     true);
+                string assemblyGuid = "{" + addinType.GUID.ToString().ToUpperInvariant() + "}";
+                if (!string.Equals(
+                    assemblyGuid,
+                    SolidTweaksAddinIdentity.CurrentGuid,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        "The packaged add-in identity does not match the application. Expected " +
+                        SolidTweaksAddinIdentity.CurrentGuid + ", found " + assemblyGuid + ".");
+                }
                 bool success;
                 if (isRegister)
                 {
@@ -118,7 +128,14 @@ namespace SolidTweaks
                 else
                 {
                     InvokeRegistrationHook(addinType, "Unregister");
-                    success = registration.UnregisterAssembly(assembly);
+                    bool assemblyUnregistered = registration.UnregisterAssembly(assembly);
+                    SolidWorksAddinRegistrationService.RemoveKnownAddinRegistrationKeys();
+                    success = !SolidWorksAddinRegistrationService.IsAnyKnownAddinRegistered();
+                    if (!assemblyUnregistered && success)
+                    {
+                        ApplicationLog.Warning(
+                            "The COM assembly was already absent; remaining SOLIDWORKS registration keys were removed.");
+                    }
                 }
                 int result = success ? 0 : 2;
                 ApplicationLog.Info("COM registration completed. Result=" + result + ".");

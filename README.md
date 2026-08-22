@@ -44,13 +44,17 @@ Na primeira execução desta versão, os antigos estados fixos F/C/M são desfei
 
 Os checkboxes **Exportar STEP** e **Exportar Chapas DXF** controlam comandos independentes em uma única guia **Solid Tweaks** no CommandManager de peças e montagens.
 
+Os dois checkboxes só ficam habilitados enquanto o aplicativo mantém uma conexão ativa com o SOLIDWORKS. Sem conexão, permanecem bloqueados e exibem o requisito **Necessário abrir o SOLIDWORKS**; um documento aberto não é exigido para instalar ou remover a guia.
+
 - qualquer um dos recursos cria a guia sem depender do outro;
 - cada checkbox adiciona ou remove somente seu próprio botão;
-- quando o último recurso é removido, a guia e o add-in são removidos;
+- quando o último recurso é removido, a guia desaparece e a inicialização do add-in é desativada; se o SOLIDWORKS estiver aberto, o componente já carregado fica dormente até o encerramento do processo;
 - quando os dois estão ativos, os dois botões permanecem na mesma guia;
 - o add-in reconstrói somente as guias durante uma alteração, sem depender de unload/reload do componente .NET.
 
 O componente é implantado de forma versionada em `%LOCALAPPDATA%\SolidTweaks\Addins`. Os checkboxes só permanecem marcados depois que o add-in confirma, nas guias de peça e montagem, exatamente os comandos configurados. O registro `HKCU\Software\SolidTweaks\Features` armazena quais comandos devem compor a guia.
+
+A identidade COM da versão 1.14 é permanente para as próximas atualizações normais. Aplicativo e add-in leem o mesmo GUID de `Shared/SolidTweaksAddinIdentity.cs`, e o registrador recusa uma DLL cuja identidade não corresponda. Versões futuras substituem a DLL somente com o SOLIDWORKS fechado; remover e adicionar recursos durante uma sessão apenas reconstrói a interface, sem descarregar e recarregar o componente .NET.
 
 Quando uma versão anterior do add-in está instalada, o aplicativo mostra o botão **Atualizar** no cartão **Recursos** e mantém os checkboxes conforme a configuração já persistida. Após a confirmação do usuário, o SOLIDWORKS é fechado, a nova DLL versionada é instalada e o SOLIDWORKS é aberto novamente. A atualização não força o encerramento do processo se ele não puder ser fechado com segurança e não altera quais comandos estavam habilitados.
 
@@ -145,7 +149,7 @@ A compilação `Release` é portátil: a pasta de saída contém somente `SolidT
 - `Shared`: estado persistente compartilhado entre o aplicativo e o add-in.
 - `SolidTweaks.SolidWorksAddin`: um único add-in persistente, carregado na inicialização do SOLIDWORKS, com guia dinâmica e comandos no CommandManager.
 
-Os recursos que adicionam botões compartilham a guia `Solid Tweaks`. Ela permanece instalada enquanto ao menos um desses recursos estiver habilitado e só é removida quando todos forem desmarcados. O registro também elimina identidades antigas do add-in para impedir conflitos nas próximas extensões.
+Os recursos que adicionam botões compartilham a guia `Solid Tweaks`. Ela permanece visível enquanto ao menos um desses recursos estiver habilitado e é removida quando todos forem desmarcados. O componente carregado não é descarregado no meio da sessão, o que permite recriar a guia com segurança; sem recursos ativos, ele não é carregado na próxima inicialização. O registro também elimina identidades antigas do add-in para impedir conflitos nas próximas extensões.
 
 Toda linha de recurso que possua um pré-requisito deve usar o indicador visual reutilizável ao lado do ícone de ajuda. O aviso permanece oculto quando o recurso está disponível e, quando bloqueado, informa em vermelho e de forma breve o que falta para habilitá-lo.
 

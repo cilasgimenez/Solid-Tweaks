@@ -66,6 +66,8 @@ namespace SolidTweaks.Presentation
         private readonly Label constructionGeometryShortcutRequirementLabel;
         private readonly Label measureShortcutRequirementLabel;
         private readonly Label offsetEntitiesShortcutRequirementLabel;
+        private readonly Label exportStepRequirementLabel;
+        private readonly Label exportSheetMetalDxfRequirementLabel;
         private readonly Label gpuSilhouetteRequirementLabel;
         private readonly Panel headerPanel;
         private readonly FlowLayoutPanel contentPanel;
@@ -202,6 +204,8 @@ namespace SolidTweaks.Presentation
                 helpIconImage,
                 out exportStepCheckBox,
                 out exportSheetMetalDxfCheckBox,
+                out exportStepRequirementLabel,
+                out exportSheetMetalDxfRequirementLabel,
                 out updateButton);
             visualCard = BuildVisualCard(
                 helpToolTip,
@@ -844,6 +848,8 @@ namespace SolidTweaks.Presentation
             Image helpImage,
             out CheckBox exportStepCheckBox,
             out CheckBox exportSheetMetalDxfCheckBox,
+            out Label exportStepRequirementLabel,
+            out Label exportSheetMetalDxfRequirementLabel,
             out Button updateButton)
         {
             var card = CreateCard(116);
@@ -855,10 +861,12 @@ namespace SolidTweaks.Presentation
                 Text = UiText.Get("Export STEP"),
                 Font = new Font("Segoe UI Semibold", 11F),
                 ForeColor = UiPalette.Text,
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                Enabled = false
             };
             TrackText(exportStepCheckBox, "Export STEP");
             Control stepHelpIcon = CreateHelpIcon(exportStepCheckBox, 42, helpImage);
+            exportStepRequirementLabel = CreateRequirementLabel(stepHelpIcon, 42);
             TrackToolTip(stepHelpIcon, "Exports the part or assembly to STEP AP214 in the same folder, adding the time to the file name. Only visible bodies and components are included.");
 
             exportSheetMetalDxfCheckBox = new CheckBox
@@ -868,17 +876,21 @@ namespace SolidTweaks.Presentation
                 Text = UiText.Get("Export Sheet Metal DXF"),
                 Font = new Font("Segoe UI Semibold", 11F),
                 ForeColor = UiPalette.Text,
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                Enabled = false
             };
             TrackText(exportSheetMetalDxfCheckBox, "Export Sheet Metal DXF");
             Control dxfHelpIcon = CreateHelpIcon(exportSheetMetalDxfCheckBox, 76, helpImage);
+            exportSheetMetalDxfRequirementLabel = CreateRequirementLabel(dxfHelpIcon, 76);
             TrackToolTip(dxfHelpIcon, "Adds a command to the Solid Tweaks tab for exporting sheet-metal flat patterns from parts and assemblies.");
             updateButton = TrackText(CreateActionButton(UiText.Get("Update"), card), "Update");
             updateButton.Visible = false;
             card.Controls.Add(exportStepCheckBox);
             card.Controls.Add(stepHelpIcon);
+            card.Controls.Add(exportStepRequirementLabel);
             card.Controls.Add(exportSheetMetalDxfCheckBox);
             card.Controls.Add(dxfHelpIcon);
+            card.Controls.Add(exportSheetMetalDxfRequirementLabel);
             card.Controls.Add(updateButton);
             return card;
         }
@@ -1444,8 +1456,9 @@ namespace SolidTweaks.Presentation
             updateButton.Visible = available;
             updateButton.Enabled = available && !updateInProgress;
             SetUpdateAttentionActive(available && !updateInProgress);
-            exportStepCheckBox.Enabled = !available && !updateInProgress;
-            exportSheetMetalDxfCheckBox.Enabled = !available && !updateInProgress;
+            bool commandFeaturesEnabled = solidWorks.IsConnected && !available && !updateInProgress;
+            exportStepCheckBox.Enabled = commandFeaturesEnabled;
+            exportSheetMetalDxfCheckBox.Enabled = commandFeaturesEnabled;
             return available;
         }
 
@@ -1702,7 +1715,11 @@ namespace SolidTweaks.Presentation
             SetRequirement(constructionGeometryShortcutRequirementLabel, spaceRequirement);
             SetRequirement(measureShortcutRequirementLabel, spaceRequirement);
             SetRequirement(offsetEntitiesShortcutRequirementLabel, spaceRequirement);
-
+            string commandFeatureRequirement = connected
+                ? null
+                : UiText.Get("SOLIDWORKS must be open");
+            SetRequirement(exportStepRequirementLabel, commandFeatureRequirement);
+            SetRequirement(exportSheetMetalDxfRequirementLabel, commandFeatureRequirement);
         }
 
         private static void SetRequirement(Label label, string message)
@@ -1965,6 +1982,7 @@ namespace SolidTweaks.Presentation
 
             ApplicationLog.Info("The user confirmed the update.");
             updateInProgress = true;
+            bool restoreAnyTabFeature = SolidTweaksFeatureSettings.HasAnyAddinFeatureEnabled();
             ApplyUpdateAvailability();
             reconnectButton.Enabled = false;
             autoRotateCheckBox.Enabled = false;
@@ -2019,8 +2037,19 @@ namespace SolidTweaks.Presentation
                 if (await WaitForUpdatedSolidWorksAsync(90000))
                 {
                     ApplicationLog.Info("SOLIDWORKS reopened and the add-in interface was confirmed.");
+                    if (!restoreAnyTabFeature)
+                    {
+                        commandFeatureRegistration.Uninstall();
+                        ApplicationLog.Info(
+                            "Updated add-in left dormant because no tab features are configured.");
+                    }
                     ApplyConnectionState(true);
-                    SetStatus(UiText.Get("Solid Tweaks was updated successfully. Previous features were restored."), UiPalette.Success);
+                    SetStatus(
+                        UiText.Get(
+                            restoreAnyTabFeature
+                                ? "Solid Tweaks was updated successfully. Previous features were restored."
+                                : "Solid Tweaks was updated successfully. No tab features are enabled."),
+                        UiPalette.Success);
                 }
                 else
                 {
@@ -2126,6 +2155,17 @@ namespace SolidTweaks.Presentation
         {
             if (syncingUi)
             {
+                return;
+            }
+
+            if (!solidWorks.IsConnected)
+            {
+                syncingUi = true;
+                checkBox.Checked = feature.Read();
+                syncingUi = false;
+                ApplyUpdateAvailability();
+                UpdateRequirementIndicators(false, false);
+                SetStatus(UiText.Get("SOLIDWORKS is not open. Open it and click Reconnect."), UiPalette.Warning);
                 return;
             }
 

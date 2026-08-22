@@ -16,31 +16,18 @@ using Environment = System.Environment;
 namespace SolidTweaks.SolidWorksAddin
 {
     [ComVisible(true)]
-    [Guid(AddinGuid)]
-    [ProgId("SolidTweaks.SolidWorksAddin.V113")]
+    [Guid(SolidTweaksAddinIdentity.CurrentGuidWithoutBraces)]
+    [ProgId(SolidTweaksAddinIdentity.CurrentProgId)]
     [ClassInterface(ClassInterfaceType.AutoDispatch)]
     public sealed class SolidTweaksAddin : ISwAddin
     {
-        public const string AddinGuid = "6330361C-6CCC-4DA1-890D-D6685BC8DBF0";
+        public const string AddinGuid = SolidTweaksAddinIdentity.CurrentGuidWithoutBraces;
         public const string TabTitle = "Solid Tweaks";
         private const string LegacyTabTitle = "Exportar STEP";
         private const int CommandGroupId = 12001;
         private const int ExportStepCommandUserId = 12002;
         private const int ExportDxfCommandUserId = 12003;
-        private static readonly string[] LegacyAddinGuids =
-        {
-            "{F27105A6-4344-4081-B657-7E421FF0D6ED}",
-            "{7D87C1B8-777D-4D69-BD53-6BD88C2F3E48}",
-            "{7271ABC6-6994-4C09-A8E1-CE231967E48A}",
-            "{0C6C9A95-EE42-40AE-928D-D31949D7251E}",
-            "{DF9D52E8-E929-42A4-A742-DB8F54B4F984}",
-            "{ADB6989A-A69B-4A6B-B979-37527988BB15}",
-            "{D52DA99A-B23B-4342-83F6-D9779C252217}",
-            "{C7D41943-0042-4140-93DE-7523EEDE7684}",
-            "{131EB904-E091-4C86-95B0-B41E4F9869F0}",
-            "{0E9FA022-92A6-4C34-8915-7512514F3B05}",
-            "{E8327E13-5F74-41DB-9234-47994B1DDC75}"
-        };
+        private static readonly string[] LegacyAddinGuids = SolidTweaksAddinIdentity.LegacyGuids;
         private static readonly int[] SupportedDocumentTypes =
         {
             (int)swDocumentTypes_e.swDocPART,
@@ -306,7 +293,15 @@ namespace SolidTweaks.SolidWorksAddin
                 {
                     return true;
                 }
-                SynchronizeCommandTabs();
+                if (IsCommandGroupReady())
+                {
+                    SynchronizeCommandTabs();
+                }
+                else
+                {
+                    AppendLog("The command group is missing or incomplete; rebuilding the complete interface.");
+                    CreateUserInterface();
+                }
                 return ValidateUserInterface();
             }
             catch (Exception exception)
@@ -314,6 +309,30 @@ namespace SolidTweaks.SolidWorksAddin
                 AppendLog("Failed to validate or synchronize the Solid Tweaks tab.", exception);
                 return false;
             }
+        }
+
+        private bool IsCommandGroupReady()
+        {
+            if (commandManager == null)
+            {
+                return false;
+            }
+
+            IList<CommandDefinition> allCommands = GetAllCommands();
+            CommandGroup group = commandManager.GetCommandGroup(CommandGroupId);
+            if (group == null || group.NumberOfGroupItems != allCommands.Count)
+            {
+                return false;
+            }
+
+            foreach (CommandDefinition command in allCommands)
+            {
+                if (group.get_CommandID(command.GroupIndex) <= 0)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private bool ValidateUserInterface()

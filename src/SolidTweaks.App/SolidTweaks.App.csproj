@@ -72,6 +72,9 @@
     <Compile Include="..\Shared\Localization.cs">
       <Link>Shared\Localization.cs</Link>
     </Compile>
+    <Compile Include="..\Shared\SolidTweaksAddinIdentity.cs">
+      <Link>Shared\SolidTweaksAddinIdentity.cs</Link>
+    </Compile>
     <Compile Include="..\Shared\ShortcutBinding.cs">
       <Link>Shared\ShortcutBinding.cs</Link>
     </Compile>
@@ -93,8 +96,8 @@
     <EmbeddedResource Include="Logo_Github.png">
       <LogicalName>SolidTweaks.Brand.Logo_Github.png</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\SolidTweaks.SolidWorksAddin\bin\$(Configuration)\SolidTweaks.SolidWorksAddin.v1_13.dll">
-      <LogicalName>SolidTweaks.Embedded.SolidTweaks.SolidWorksAddin.v1_13.dll</LogicalName>
+    <EmbeddedResource Include="..\SolidTweaks.SolidWorksAddin\bin\$(Configuration)\SolidTweaks.SolidWorksAddin.v1_14.dll">
+      <LogicalName>SolidTweaks.Embedded.SolidTweaks.SolidWorksAddin.v1_14.dll</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

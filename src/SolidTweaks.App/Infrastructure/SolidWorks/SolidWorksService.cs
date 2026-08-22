@@ -160,12 +160,13 @@ namespace SolidTweaks.Infrastructure.SolidWorks
         public void LoadAddin(string addinPath, string addinGuid)
         {
             ISldWorks sw = RequireApplication();
-            sw.LoadAddIn(addinPath);
+            int loadResult = sw.LoadAddIn(addinPath);
+            ApplicationLog.Info("SOLIDWORKS LoadAddIn returned code " + loadResult + " for " + addinGuid + ".");
             object addin = sw.GetAddInObject(addinGuid);
             if (addin == null)
             {
                 throw new UserFacingException(
-                    "SOLIDWORKS could not load the Solid Tweaks tab.",
+                    "SOLIDWORKS could not load the Solid Tweaks tab. LoadAddIn code: " + loadResult + ".",
                     UiText.Get("SOLIDWORKS could not load the Solid Tweaks tab."));
             }
             if (!Convert.ToBoolean(InvokeAddinMethod(addin, "IsUserInterfaceReady")))
@@ -302,6 +303,36 @@ namespace SolidTweaks.Infrastructure.SolidWorks
                     throw new UserFacingException(
                         "The Solid Tweaks add-in could not be unloaded. Code: " + unloadResult + ".",
                         UiText.Format("The Solid Tweaks add-in could not be unloaded. Code: {0}.", unloadResult));
+                }
+            }
+        }
+
+        public void RemoveAddinUserInterface(string addinGuid)
+        {
+            ISldWorks sw = RequireApplication();
+            object addin;
+            try
+            {
+                addin = sw.GetAddInObject(addinGuid);
+            }
+            catch (COMException)
+            {
+                return;
+            }
+            if (addin == null)
+            {
+                return;
+            }
+
+            try
+            {
+                InvokeAddinMethod(addin, "RemoveUserInterface");
+            }
+            finally
+            {
+                if (Marshal.IsComObject(addin))
+                {
+                    Marshal.FinalReleaseComObject(addin);
                 }
             }
         }
