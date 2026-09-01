@@ -867,7 +867,7 @@ namespace SolidTweaks.Presentation
             TrackText(exportStepCheckBox, "Export STEP");
             Control stepHelpIcon = CreateHelpIcon(exportStepCheckBox, 42, helpImage);
             exportStepRequirementLabel = CreateRequirementLabel(stepHelpIcon, 42);
-            TrackToolTip(stepHelpIcon, "Exports the part or assembly to STEP AP214 in the same folder, adding the time to the file name. Only visible bodies and components are included.");
+            TrackToolTip(stepHelpIcon, "Exports the part or assembly to STEP AP203 or AP214 in the same folder, adding the time to the file name. Only visible bodies and components are included.");
 
             exportSheetMetalDxfCheckBox = new CheckBox
             {

@@ -44,9 +44,11 @@ namespace SolidTweaks.SolidWorksAddin
             }
 
             bool openFolderAfterExport;
+            StepExportProtocol protocol;
             StepExportAction action = StepExportActionDialog.Show(
                 Process.GetCurrentProcess().MainWindowHandle,
-                out openFolderAfterExport);
+                out openFolderAfterExport,
+                out protocol);
             if (action == StepExportAction.Cancel)
             {
                 return;
@@ -60,7 +62,7 @@ namespace SolidTweaks.SolidWorksAddin
                 try
                 {
                     exportedItemCount = SelectVisibleGeometry(model, documentType);
-                    using (new StepPreferenceScope(application))
+                    using (new StepPreferenceScope(application, protocol))
                     {
                         int errors = 0;
                         int warnings = 0;
@@ -288,7 +290,7 @@ namespace SolidTweaks.SolidWorksAddin
             private readonly bool atomicSave;
             private readonly string coordinateSystem;
 
-            public StepPreferenceScope(ISldWorks application)
+            public StepPreferenceScope(ISldWorks application, StepExportProtocol selectedProtocol)
             {
                 this.application = application;
                 protocol = GetInteger(swUserPreferenceIntegerValue_e.swStepAP);
@@ -302,16 +304,16 @@ namespace SolidTweaks.SolidWorksAddin
                 coordinateSystem = application.GetUserPreferenceStringValue(
                     (int)swUserPreferenceStringValue_e.swExportOutputCoordinateSystem);
 
-                SetInteger(swUserPreferenceIntegerValue_e.swStepAP, 214);
+                SetInteger(swUserPreferenceIntegerValue_e.swStepAP, (int)selectedProtocol);
                 SetInteger(
                     swUserPreferenceIntegerValue_e.swStepExportPreference,
                     (int)swAcisOutputGeometryPreference_e.swAcisOutputAsSolidAndSurface);
                 SetToggle(swUserPreferenceToggle_e.swStepExportConfigurationData, false);
-                SetToggle(swUserPreferenceToggle_e.swStepExportFaceEdgeProps, false);
-                SetToggle(swUserPreferenceToggle_e.swStepExportAppearances, false);
-                SetToggle(swUserPreferenceToggle_e.swStepExportSplitPeriodic, false);
+                SetToggle(swUserPreferenceToggle_e.swStepExportFaceEdgeProps, true);
+                SetToggle(swUserPreferenceToggle_e.swStepExportAppearances, true);
+                SetToggle(swUserPreferenceToggle_e.swStepExportSplitPeriodic, true);
                 SetToggle(swUserPreferenceToggle_e.swStepExport3DCurveFeatures, false);
-                SetToggle(swUserPreferenceToggle_e.swStepExportAtomicSave, false);
+                SetToggle(swUserPreferenceToggle_e.swStepExportAtomicSave, true);
                 application.SetUserPreferenceStringValue(
                     (int)swUserPreferenceStringValue_e.swExportOutputCoordinateSystem,
                     string.Empty);

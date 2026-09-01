@@ -64,7 +64,9 @@ O botão **Exportar STEP**, com o ícone `Exportar_Step.png`, usa diretamente a 
 
 O botão usa diretamente a API do SOLIDWORKS, sem macro externa, para:
 
-- salvar em STEP AP214 com geometria sólida e de superfície;
+- permitir escolher entre STEP AP203 e AP214, usando AP203 como padrão e preservando a preferência do usuário;
+- salvar com geometria sólida e de superfície;
+- usar em AP203 e AP214 o perfil de compatibilidade com propriedades de face/aresta, aparências, faces periódicas divididas e componentes de montagem separados;
 - criar o arquivo na mesma pasta com o nome `<documento>_HHmmss.STEP`;
 - exportar somente corpos visíveis de peças multicorpos;
 - exportar somente componentes visíveis de montagens;
