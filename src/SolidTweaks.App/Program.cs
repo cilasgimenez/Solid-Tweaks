@@ -20,11 +20,13 @@ namespace SolidTweaks
             RegisterGlobalExceptionHandlers();
             ApplicationLog.Info("Solid Tweaks initialization.");
             AppDomain.CurrentDomain.AssemblyResolve += ResolveSolidWorksInterop;
+            SolidWorksInstallation.InitializeSelection();
             UiLanguageSelector.Initialize(SolidWorksPreferenceResolver.ReadCurrentLanguage());
-            if (args.Length == 2 &&
+            if ((args.Length == 2 || args.Length == 3) &&
                 (string.Equals(args[0], "--register-addin", StringComparison.OrdinalIgnoreCase) ||
                  string.Equals(args[0], "--unregister-addin", StringComparison.OrdinalIgnoreCase)))
             {
+                SolidWorksTarget.Year = args.Length == 3 && args[2] == "2026" ? 2026 : 2025;
                 Environment.ExitCode = RunAddinRegistration(args[0], args[1]);
                 ApplicationLog.Info("Helper process finished with code " + Environment.ExitCode + ".");
                 return;
@@ -72,92 +74,36 @@ namespace SolidTweaks
                 return null;
             }
 
-            string installFolder = SolidWorksPreferenceResolver.ReadInstallFolder();
-            string path = string.IsNullOrWhiteSpace(installFolder)
-                ? Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                    "SOLIDWORKS Corp",
-                    "SOLIDWORKS",
-                    requested.Name + ".dll")
-                : Path.Combine(installFolder, requested.Name + ".dll");
-            if (!File.Exists(path))
+            // Resolve the referenced API, independently of the currently selected UI year.
+            // The application uses API 33; the 2026 add-in uses its private API 34 package.
+            string resource = "SolidTweaks.Embedded.SW" + (requested.Version.Major >= 34 ? "2026" : "2025") + "." + requested.Name + ".dll";
+            using (Stream input = typeof(Program).Assembly.GetManifestResourceStream(resource))
             {
-                ApplicationLog.Warning("Requested interop was not found: " + path);
-                return null;
-            }
-            try
-            {
-                Assembly resolved = Assembly.LoadFrom(path);
-                ApplicationLog.Info("Interop loaded: " + path);
-                return resolved;
-            }
-            catch (Exception exception)
-            {
-                ApplicationLog.Error("Failed to load interop " + path + ".", exception);
-                return null;
+                if (input == null) return null;
+                using (var buffer = new MemoryStream())
+                {
+                    input.CopyTo(buffer);
+                    Assembly resolved = Assembly.Load(buffer.ToArray());
+                    if (resolved.GetName().FullName != requested.FullName)
+                        throw new FileLoadException("Packaged API identity mismatch: " + requested.FullName);
+                    return resolved;
+                }
             }
         }
-
         private static int RunAddinRegistration(string command, string assemblyPath)
         {
             try
             {
-                ApplicationLog.Info("Starting " + command + " for " + assemblyPath + ".");
-                Assembly assembly = Assembly.LoadFrom(Path.GetFullPath(assemblyPath));
-                var registration = new RegistrationServices();
-                bool isRegister = string.Equals(command, "--register-addin", StringComparison.OrdinalIgnoreCase);
-                Type addinType = assembly.GetType(
-                    "SolidTweaks.SolidWorksAddin.SolidTweaksAddin",
-                    true);
-                string assemblyGuid = "{" + addinType.GUID.ToString().ToUpperInvariant() + "}";
-                if (!string.Equals(
-                    assemblyGuid,
-                    SolidTweaksAddinIdentity.CurrentGuid,
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new InvalidOperationException(
-                        "The packaged add-in identity does not match the application. Expected " +
-                        SolidTweaksAddinIdentity.CurrentGuid + ", found " + assemblyGuid + ".");
-                }
-                bool success;
-                if (isRegister)
-                {
-                    success = registration.RegisterAssembly(assembly, AssemblyRegistrationFlags.SetCodeBase);
-                    InvokeRegistrationHook(addinType, "Register");
-                }
-                else
-                {
-                    InvokeRegistrationHook(addinType, "Unregister");
-                    bool assemblyUnregistered = registration.UnregisterAssembly(assembly);
-                    SolidWorksAddinRegistrationService.RemoveKnownAddinRegistrationKeys();
-                    success = !SolidWorksAddinRegistrationService.IsAnyKnownAddinRegistered();
-                    if (!assemblyUnregistered && success)
-                    {
-                        ApplicationLog.Warning(
-                            "The COM assembly was already absent; remaining SOLIDWORKS registration keys were removed.");
-                    }
-                }
-                int result = success ? 0 : 2;
-                ApplicationLog.Info("COM registration completed. Result=" + result + ".");
-                return result;
+                if (command != "--register-addin") throw new InvalidOperationException("Unregistration is no longer used for feature changes.");
+                ApplicationLog.Info("Registering SW" + SolidWorksTarget.Year + " package: " + assemblyPath);
+                new SolidWorksVersionedAddinRegistration(null, SolidWorksTarget.Year).RegisterPackage(Path.GetFullPath(assemblyPath));
+                return 0;
             }
             catch (Exception exception)
             {
                 ApplicationLog.Error("COM registration helper process failed.", exception);
                 return 1;
             }
-        }
-
-        private static void InvokeRegistrationHook(Type addinType, string methodName)
-        {
-            MethodInfo method = addinType.GetMethod(
-                methodName,
-                BindingFlags.Public | BindingFlags.Static);
-            if (method == null)
-            {
-                throw new MissingMethodException(addinType.FullName, methodName);
-            }
-            method.Invoke(null, new object[] { addinType });
         }
     }
 }

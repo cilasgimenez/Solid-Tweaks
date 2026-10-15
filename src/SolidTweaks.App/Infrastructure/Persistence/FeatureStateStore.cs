@@ -1,10 +1,10 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 
 namespace SolidTweaks.Infrastructure.Persistence
 {
     internal sealed class FeatureStateStore
     {
-        private const string RegistryPath = @"Software\SolidTweaks\Features";
+        private static string RegistryPath { get { return SolidTweaks.Shared.SolidWorksTarget.FeaturesPath; } }
 
         public bool Read(string featureId, bool defaultValue)
         {

@@ -87,6 +87,8 @@ namespace SolidTweaks.Presentation
         private readonly Control realViewHelpControl;
         private bool syncingUi;
         private bool updateInProgress;
+        private int pendingOperations;
+        private ComboBox versionSelector;
         private bool connectionRefreshInProgress;
         private bool tweakOptionsExpanded;
         private bool visualOptionsExpanded;
@@ -103,10 +105,10 @@ namespace SolidTweaks.Presentation
         private readonly List<KeyValuePair<Control, Control>> helpAccessibleNameBindings =
             new List<KeyValuePair<Control, Control>>();
 
-        public MainForm()
+        public MainForm(SolidWorksService session = null)
         {
             ApplicationLog.Info("Building the main user interface.");
-            solidWorks = new SolidWorksService(new SolidWorksPreferenceResolver());
+            solidWorks = session ?? new SolidWorksService(new SolidWorksPreferenceResolver());
             autoRotateSketch = new AutoRotateSketchTweak(solidWorks);
             spaceNormalTo = new SpaceNormalToTweak(
                 new SolidWorksKeyboardShortcutService(solidWorks),
@@ -259,6 +261,7 @@ namespace SolidTweaks.Presentation
             Controls.Add(mainStatusStrip);
             AdjustFormHeightToContent();
 
+            versionSelector.SelectedIndexChanged += VersionSelectorOnChanged;
             reconnectButton.Click += async delegate { await RefreshConnectionAsync(); };
             languageLink.LinkClicked += LanguageLinkOnLinkClicked;
             autoRotateCheckBox.CheckedChanged += AutoRotateCheckBoxOnCheckedChanged;
@@ -469,7 +472,7 @@ namespace SolidTweaks.Presentation
             out LinkLabel language,
             out Button reconnect)
         {
-            var card = CreateCard(142);
+            var card = CreateCard(198);
             card.Controls.Add(TrackText(CreateSectionTitle(UiText.Get("ENVIRONMENT"), 10), "ENVIRONMENT"));
 
             Label versionLabel = CreateValueLabel(UiText.Get("Getting version..."), 34);
@@ -507,6 +510,27 @@ namespace SolidTweaks.Presentation
             };
             card.Controls.Add(reconnectButton);
             reconnect = reconnectButton;
+            foreach (Control control in card.Controls)
+                if (control.Top >= 30) control.Top += 32;
+            versionSelector = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(150, 32), Width = 300,
+                AccessibleName = UiText.Get("Select the SOLIDWORKS version")
+            };
+            TrackAccessibleName(versionSelector, "Select the SOLIDWORKS version");
+            foreach (SolidWorksInstallation installation in SolidWorksInstallation.Discover())
+            {
+                versionSelector.Items.Add(installation);
+                if (installation.Year == SolidWorksTarget.Year) versionSelector.SelectedItem = installation;
+            }
+            card.Controls.Add(TrackText(CreateCaptionLabel(UiText.Get("TARGET VERSION"), 36), "TARGET VERSION"));
+            card.Controls.Add(versionSelector);
+            card.Controls.Add(TrackText(new Label
+            {
+                AutoSize = true, Location = new Point(20, 168), ForeColor = UiPalette.Muted,
+                Text = UiText.Get("RealView is shared by the installed versions. Other settings follow the selected version.")
+            }, "RealView is shared by the installed versions. Other settings follow the selected version."));
             return card;
         }
 
@@ -1268,10 +1292,36 @@ namespace SolidTweaks.Presentation
             ApplyConnectionState(connected);
         }
 
+        private async void VersionSelectorOnChanged(object sender, EventArgs e)
+        {
+            var selected = versionSelector.SelectedItem as SolidWorksInstallation;
+            if (selected == null || selected.Year == SolidWorksTarget.Year || pendingOperations > 0 || updateInProgress || connectionRefreshInProgress) return;
+            solidWorks.Disconnect();
+            SolidWorksTarget.Year = selected.Year;
+            try { SolidWorksInstallation.SaveSelection(); }
+            catch (Exception exception) { ApplicationLog.Error("Could not save the selected version.", exception); }
+            ApplicationLog.Info("Selected SOLIDWORKS " + selected.Year + ".");
+            lastObservedHasActiveDocument = null;
+            syncingUi = true;
+            try
+            {
+                autoRotateCheckBox.Checked = false;
+                spaceNormalToCheckBox.Checked = spaceNormalTo.Read();
+                exportStepCheckBox.Checked = exportStep.Read();
+                exportSheetMetalDxfCheckBox.Checked = exportSheetMetalDxf.Read();
+                RefreshShortcutLabels();
+                RefreshVisualCheckBoxes();
+            }
+            finally { syncingUi = false; }
+            SetVisualControlsEnabled(selected.IsSupported);
+            await RefreshConnectionAsync();
+        }
+
         private async Task InitializeAsync()
         {
             ApplicationLog.Info("Initializing preferences and system information.");
             syncingUi = true;
+            spaceNormalToCheckBox.Checked = spaceNormalTo.Read();
             exportStepCheckBox.Checked = exportStep.Read();
             exportSheetMetalDxfCheckBox.Checked = exportSheetMetalDxf.Read();
             RefreshVisualCheckBoxes();
@@ -1286,14 +1336,15 @@ namespace SolidTweaks.Presentation
             ApplicationLog.Info("User interface initialization completed.");
         }
 
-        private async Task RefreshConnectionAsync(bool showProgress = true)
+        private Task RefreshConnectionAsync(bool showProgress = true)
         {
             if (connectionRefreshInProgress)
             {
-                return;
+                return Task.CompletedTask;
             }
 
             connectionRefreshInProgress = true;
+            versionSelector.Enabled = false;
             if (showProgress)
             {
                 SetStatus(UiText.Get("Looking for an active SOLIDWORKS session..."), UiPalette.Muted);
@@ -1303,20 +1354,13 @@ namespace SolidTweaks.Presentation
                 bool connected = solidWorks.TryConnect();
                 if (!connected && !showProgress)
                 {
-                    return;
+                    return Task.CompletedTask;
                 }
                 ApplyConnectionState(connected);
                 lastObservedHasActiveDocument = connected
                     ? (bool?)solidWorks.HasActiveDocument
                     : null;
-                if (connected && solidWorks.HasActiveDocument && !shortcutMigration.IsComplete)
-                {
-                    SetShortcutLinksEnabled(false);
-                    SetStatus(UiText.Get("Removing the previous fixed shortcuts..."), UiPalette.Accent);
-                    await RunOnStaThread(() => shortcutMigration.Run());
-                    RefreshShortcutLabels();
-                    ApplyConnectionState(true);
-                }
+
             }
             catch (Exception exception)
             {
@@ -1332,12 +1376,14 @@ namespace SolidTweaks.Presentation
             finally
             {
                 connectionRefreshInProgress = false;
+                versionSelector.Enabled = pendingOperations == 0 && !updateInProgress;
             }
+            return Task.CompletedTask;
         }
 
         private async void SolidWorksMonitorTimerOnTick(object sender, EventArgs e)
         {
-            if (updateInProgress || IsDisposed || Disposing)
+            if (updateInProgress || pendingOperations > 0 || connectionRefreshInProgress || !SolidWorksTarget.IsSupported || IsDisposed || Disposing)
             {
                 return;
             }
@@ -1402,11 +1448,12 @@ namespace SolidTweaks.Presentation
         {
             ApplicationLog.Info("Applying connection state. Connected=" + connected + ".");
             solidWorksValue.Text = solidWorks.Version;
+            SetVisualControlsEnabled(SolidWorksTarget.IsSupported);
             bool hasActiveDocument = connected && solidWorks.HasActiveDocument;
             bool updateAvailable = ApplyUpdateAvailability();
             autoRotateCheckBox.Enabled = connected;
             spaceNormalToCheckBox.Enabled = hasActiveDocument;
-            SetShortcutLinksEnabled(hasActiveDocument && shortcutMigration.IsComplete);
+            SetShortcutLinksEnabled(hasActiveDocument);
             UpdateRequirementIndicators(connected, hasActiveDocument);
             if (!connected)
             {
@@ -1630,6 +1677,7 @@ namespace SolidTweaks.Presentation
                         UiPalette.Accent);
                     await RunOnStaThread(() =>
                     {
+                        if (!shortcutMigration.IsComplete) shortcutMigration.Run();
                         if (dialog.ClearRequested)
                         {
                             feature.Clear();
@@ -1664,7 +1712,7 @@ namespace SolidTweaks.Presentation
                 {
                     bool connected = solidWorks.IsConnected;
                     bool hasActiveDocument = connected && solidWorks.HasActiveDocument;
-                    SetShortcutLinksEnabled(hasActiveDocument && shortcutMigration.IsComplete);
+                    SetShortcutLinksEnabled(hasActiveDocument);
                     UpdateRequirementIndicators(connected, hasActiveDocument);
                 }
             }
@@ -1967,6 +2015,12 @@ namespace SolidTweaks.Presentation
                 return;
             }
 
+            if (SolidWorksVersionedAddinRegistration.NeedsIsolationRepair &&
+                (SolidWorksInstallation.IsProcessRunning(2025) || SolidWorksInstallation.IsProcessRunning(2026)))
+            {
+                SetStatus(UiText.Get("Close SOLIDWORKS 2025 and 2026 to repair the shared add-in registration."), UiPalette.Warning);
+                return;
+            }
             DialogResult confirmation = MessageBox.Show(
                 this,
                 UiText.Get("Save all open projects before continuing.\n\nSOLIDWORKS will close to update the Solid Tweaks tab and reopen when the update is complete."),
@@ -1982,6 +2036,7 @@ namespace SolidTweaks.Presentation
 
             ApplicationLog.Info("The user confirmed the update.");
             updateInProgress = true;
+            versionSelector.Enabled = false;
             bool restoreAnyTabFeature = SolidTweaksFeatureSettings.HasAnyAddinFeatureEnabled();
             ApplyUpdateAvailability();
             reconnectButton.Enabled = false;
@@ -2084,12 +2139,13 @@ namespace SolidTweaks.Presentation
             {
                 syncingUi = false;
                 updateInProgress = false;
+                versionSelector.Enabled = true;
                 reconnectButton.Enabled = true;
                 ApplyUpdateAvailability();
                 bool connected = solidWorks.IsConnected;
                 autoRotateCheckBox.Enabled = connected;
                 spaceNormalToCheckBox.Enabled = connected && solidWorks.HasActiveDocument;
-                SetShortcutLinksEnabled(connected && solidWorks.HasActiveDocument && shortcutMigration.IsComplete);
+                SetShortcutLinksEnabled(connected && solidWorks.HasActiveDocument);
                 SetVisualControlsEnabled(true);
             }
         }
@@ -2128,18 +2184,7 @@ namespace SolidTweaks.Presentation
 
         private static bool IsSolidWorksProcessRunning()
         {
-            Process[] processes = Process.GetProcessesByName("SLDWORKS");
-            try
-            {
-                return processes.Length > 0;
-            }
-            finally
-            {
-                foreach (Process process in processes)
-                {
-                    process.Dispose();
-                }
-            }
+            return SolidWorksInstallation.IsSelectedProcessRunning();
         }
 
         private static void StartSolidWorks(string executablePath)
@@ -2236,7 +2281,20 @@ namespace SolidTweaks.Presentation
             Refresh();
         }
 
-        private static Task RunOnStaThread(Action action)
+        private async Task RunOnStaThread(Action action)
+        {
+            pendingOperations++;
+            contentPanel.Enabled = false;
+            try { await ExecuteOnStaThread(action); }
+            finally
+            {
+                pendingOperations--;
+                contentPanel.Enabled = true;
+                versionSelector.Enabled = !updateInProgress && !connectionRefreshInProgress;
+            }
+        }
+
+        private static Task ExecuteOnStaThread(Action action)
         {
             var completion = new TaskCompletionSource<object>();
             var thread = new Thread(delegate()

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Microsoft.Win32;
@@ -94,6 +94,13 @@ namespace SolidTweaks.Shared
         private static readonly IDictionary<string, string> Portuguese =
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
+                { "TARGET VERSION", "VERSÃO ALVO" },
+                { "Select the SOLIDWORKS version", "Selecionar a versão do SOLIDWORKS" },
+                { "Not supported", "Não suportado" },
+                { "No SOLIDWORKS installation found", "Nenhuma instalação do SOLIDWORKS encontrada" },
+                { "RealView is shared by the installed versions. Other settings follow the selected version.", "RealView é compartilhado entre as versões. Os demais ajustes seguem a versão selecionada." },
+                { "Close the selected SOLIDWORKS version before updating the add-in.", "Feche a versão selecionada do SOLIDWORKS antes de atualizar o add-in." },
+                { "Close SOLIDWORKS 2025 and 2026 to repair the shared add-in registration.", "Feche o SOLIDWORKS 2025 e 2026 para reparar o registro compartilhado do add-in." },
                 { "Help", "Ajuda" },
                 { "Quick tweaks for SOLIDWORKS", "Ajustes rápidos para SOLIDWORKS" },
                 { "Open the CG3D channel on YouTube", "Abrir o canal CG3D no YouTube" },

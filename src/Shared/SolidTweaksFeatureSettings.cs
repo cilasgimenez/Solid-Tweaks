@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using Microsoft.Win32;
 
 namespace SolidTweaks.Shared
 {
     internal static class SolidTweaksFeatureSettings
     {
-        public const string RegistryPath = @"Software\SolidTweaks\Features";
+        public static string RegistryPath { get { return SolidWorksTarget.FeaturesPath; } }
         public const string ExportStepFeatureId = "resources.export-step";
         public const string ExportDxfFeatureId = "resources.export-sheet-metal-dxf";
         public const string DxfBendLinesPreferenceId = "export-sheet-metal-dxf.bend-lines";

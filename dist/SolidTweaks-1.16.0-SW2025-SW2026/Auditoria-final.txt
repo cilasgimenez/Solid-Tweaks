@@ -1,0 +1,23 @@
+PASS: Features2025 matches original backup (value order ignored)
+PASS: Features2026 matches original backup (value order ignored)
+PASS: COM2025 matches original backup (value order ignored)
+PASS: original SW2025 DLL SHA256 unchanged
+PASS: original and early legacy discovery isolated to SW2025
+PASS: SW2026 discovery isolated to SW2026
+PASS: SW2025 native keyboard sections unchanged: 38
+PASS: SW2025 four native graphics values unchanged
+PASS: connected to SW2025
+Revision=33.5.0; PID=16908; Documents=0
+PASS: other version's component is absent
+Startup=1; Loaded=True; STEP=True; DXF=True
+PASS: STEP UI reflects persisted preference
+PASS: DXF UI reflects persisted preference
+PASS: SW2026 native keyboard sections unchanged: 38
+PASS: SW2026 four native graphics values unchanged
+PASS: connected to SW2026
+Revision=34.4.1; PID=18064; Documents=0
+PASS: other version's component is absent
+Startup=1; Loaded=True; STEP=False; DXF=True
+PASS: STEP UI reflects persisted preference
+PASS: DXF UI reflects persisted preference
+Final EXE SHA256: 69A18DF4179621335A187A3DE9EA60A0D950E17FFC5BF1CF66A25BCA0F015B28

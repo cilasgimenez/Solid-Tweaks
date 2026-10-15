@@ -1,4 +1,4 @@
-namespace SolidTweaks.Core.SolidWorks
+﻿namespace SolidTweaks.Core.SolidWorks
 {
     internal enum SolidWorksDocumentKind
     {
@@ -10,6 +10,7 @@ namespace SolidTweaks.Core.SolidWorks
     internal interface ISolidWorksService
     {
         bool IsConnected { get; }
+        int ProcessId { get; }
         bool HasActiveDocument { get; }
         string Version { get; }
         bool TryConnect();

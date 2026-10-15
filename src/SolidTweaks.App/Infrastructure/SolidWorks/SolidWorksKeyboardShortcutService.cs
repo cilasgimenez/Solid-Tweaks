@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -929,12 +929,12 @@ namespace SolidTweaks.Infrastructure.SolidWorks
             }
         }
 
-        private static Process GetSolidWorksProcess()
+        private Process GetSolidWorksProcess()
         {
-            Process process = Process.GetProcessesByName("SLDWORKS")
-                .FirstOrDefault(item => item.MainWindowHandle != IntPtr.Zero);
-            if (process == null)
+            Process process = Process.GetProcessById(solidWorks.ProcessId);
+            if (process.MainWindowHandle == IntPtr.Zero)
             {
+                process.Dispose();
                 throw new InvalidOperationException("The SOLIDWORKS main window was not found.");
             }
             return process;

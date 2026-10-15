@@ -1,0 +1,85 @@
+
+  SolidTweaks.SolidWorks2026Addin -> D:\PROJETOS\CODEX\Solid Tweaks\src\SolidTweaks.SolidWorks2026Addin\bin\Release\SolidTweaks.SolidWorksAddin.SW2026.dll
+  SolidTweaks.App -> D:\PROJETOS\CODEX\Solid Tweaks\dist\SolidTweaks-1.16.0-SW2025-SW2026\SolidTweaks.exe
+
+  PackageLoadProbe -> D:\PROJETOS\CODEX\Solid Tweaks\tests\probe-bin\PackageLoadProbe.exe
+  SolidTweaks.Tests -> D:\PROJETOS\CODEX\Solid Tweaks\tests\bin\SolidTweaks.Tests.exe
+PASS: Installed versions have real executables
+Detected: SOLIDWORKS 2026, SOLIDWORKS 2025
+PASS: Stale year keys do not appear as installations
+PASS: First selection preserves SW2025 workflow
+PASS: Selected version persists
+PASS: New SW2026 profile does not pretend SW2025 features are installed
+PASS: Space state is separate by version
+PASS: Explicit disabled is distinct from missing
+PASS: SW2026 never migrates the old SW2025 shortcuts
+PASS: SW2025 feature values preserved
+PASS: SW2025 shortcut preserved
+PASS: SW2025 visual preferences preserved
+PASS: Install both buttons with one load
+PASS: Remove one button preserves the other
+PASS: Remove both: dormant object and startup disabled
+PASS: Re-add in same session without unload/reload
+PASS: Restart with both disabled does not load
+PASS: Add after restart loads once
+PASS: Update preserves preferences and startup for mask=0
+PASS: Restart after update honors disabled/enabled mask=0
+PASS: Update preserves preferences and startup for mask=1
+PASS: Restart after update honors disabled/enabled mask=1
+PASS: Update preserves preferences and startup for mask=2
+PASS: Restart after update honors disabled/enabled mask=2
+PASS: Update preserves preferences and startup for mask=3
+PASS: Restart after update honors disabled/enabled mask=3
+PASS: Open target blocks DLL replacement before changing preferences
+PASS: Synchronization failure restores previous preference
+PASS: 2026 startup writes preserve global SW2025 startup
+PASS: 2026 startup never creates aliases of the 2025 identity
+PASS: SW2025 embedded DLL is byte-for-byte original
+PASS: Application and SW2026 DLL GUID match
+PASS: SW2026 add-in compiled against revision 34 API
+PASS: 2026 registration never duplicates the 2025 identity
+PASS: SW2026 registration is version-specific
+PASS: SW2026 registration preserves SW2025 add-in entry
+PASS: SW2026 registration preserves SW2025 COM path
+PASS: SW2026 unregistration preserves SW2025
+PASS: Repair removes globally discoverable 2025 entry
+PASS: Repair preserves 2025 discovery values in its own version
+PASS: Isolation migration preserves 2025 startup
+PASS: Repair is complete and idempotent
+PASS: SW2026 add-in refuses SW2025 before changing its UI
+PASS: SW2025 original package includes its own API 33 and TLB
+Package dependency: SolidWorks.Interop.swpublished
+Package dependency: SolidWorks.Interop.sldworks
+PASS: add-in activated in a clean process from its package only.
+PASS: Original SW2025 component activates from its own complete package
+PASS: Extracted SW2026 package includes verified API dependencies
+Package dependency: SolidWorks.Interop.swpublished
+Package dependency: SolidWorks.Interop.sldworks
+PASS: add-in activated in a clean process from its package only.
+PASS: Packaged SW2026 component loads without API preloading or a custom resolver
+PASS: Missing sldworks marks the installation incomplete
+PASS: Damaged sldworks marks the installation incomplete
+PASS: Missing swconst marks the installation incomplete
+PASS: Damaged swconst marks the installation incomplete
+PASS: Missing swpublished marks the installation incomplete
+Expected missing-dependency probe exit: 1; System.IO.FileNotFoundException: N�o foi poss�vel carregar arquivo ou assembly 'SolidWorks.Interop.swpublished, Version=34.4.1.1011, Culture=neutral, PublicKeyToken=89a97bdc5284e6d8' ou uma de suas depend�ncias. O sistema n�o pode encontrar o arquivo especificado.
+
+PASS: Regression control reproduces activation failure when swpublished is missing
+PASS: Damaged swpublished marks the installation incomplete
+PASS: Missing TLB marks native SOLIDWORKS package incomplete
+PASS: Damaged TLB marks native SOLIDWORKS package incomplete
+Package dependency: SolidWorks.Interop.swpublished
+Package dependency: SolidWorks.Interop.sldworks
+PASS: add-in activated in a clean process from its package only.
+PASS: Restored complete package loads in another clean process
+PASS: SW2026 accepts only its matching session/PID
+PASS: Version switch discards a mismatched session
+PASS: SW2025 connection remains supported
+PASS: Initial UI shows existing SW2025 preferences
+PASS: Switch to SW2026 rereads independent preferences without resizing
+PASS: Bottom margin is preserved
+PASS: Expanding options scrolls without changing form size
+PASS: Collapsing options removes unnecessary scroll
+PASS: Switching back preserves SW2025 selections
+PASS: 65 assertions. Registry redirected to disposable test keys; no installed add-in changed.
+D:\PROJETOS\CODEX\Solid Tweaks\dist\SolidTweaks-1.16.0-SW2025-SW2026\SolidTweaks.exe

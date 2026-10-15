@@ -4,7 +4,7 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SolidTweaks.App", "src\SolidTweaks.App\SolidTweaks.App.csproj", "{12B08698-35BD-40A0-9D84-D55A54C0A8A3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SolidTweaks.SolidWorksAddin", "src\SolidTweaks.SolidWorksAddin\SolidTweaks.SolidWorksAddin.csproj", "{5175D767-6B50-4C8D-A511-03C7EBAE62B2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SolidTweaks.SolidWorks2026Addin", "src\SolidTweaks.SolidWorks2026Addin\SolidTweaks.SolidWorks2026Addin.csproj", "{6D1C3655-CA31-47AF-BE51-16BB41CC2026}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,9 +16,9 @@ Global
 		{12B08698-35BD-40A0-9D84-D55A54C0A8A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{12B08698-35BD-40A0-9D84-D55A54C0A8A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{12B08698-35BD-40A0-9D84-D55A54C0A8A3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5175D767-6B50-4C8D-A511-03C7EBAE62B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5175D767-6B50-4C8D-A511-03C7EBAE62B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5175D767-6B50-4C8D-A511-03C7EBAE62B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5175D767-6B50-4C8D-A511-03C7EBAE62B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D1C3655-CA31-47AF-BE51-16BB41CC2026}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D1C3655-CA31-47AF-BE51-16BB41CC2026}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D1C3655-CA31-47AF-BE51-16BB41CC2026}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D1C3655-CA31-47AF-BE51-16BB41CC2026}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

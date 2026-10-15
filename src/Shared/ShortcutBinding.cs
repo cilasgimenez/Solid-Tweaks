@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.Win32;
 
 namespace SolidTweaks.Shared
@@ -83,10 +83,6 @@ namespace SolidTweaks.Shared
                 return binding;
             }
 
-            if (raw != null && raw.ToString().StartsWith("mouse:", StringComparison.OrdinalIgnoreCase))
-            {
-                Write(action, null);
-            }
             return null;
         }
 
@@ -111,7 +107,7 @@ namespace SolidTweaks.Shared
 
         public static bool IsMigrationComplete()
         {
-            return SolidTweaksFeatureSettings.Read(MigrationMarker, false);
+            return SolidWorksTarget.Year != 2025 || SolidTweaksFeatureSettings.Read(MigrationMarker, false);
         }
 
         public static void MarkMigrationComplete()

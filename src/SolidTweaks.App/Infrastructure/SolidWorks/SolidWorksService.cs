@@ -13,11 +13,13 @@ namespace SolidTweaks.Infrastructure.SolidWorks
     internal sealed class SolidWorksService : ISolidWorksService, IDisposable
     {
         private readonly SolidWorksPreferenceResolver preferenceResolver;
+        private readonly Func<int, ISldWorks> sessionLookup;
         private ISldWorks application;
 
-        public SolidWorksService(SolidWorksPreferenceResolver preferenceResolver)
+        public SolidWorksService(SolidWorksPreferenceResolver preferenceResolver, Func<int, ISldWorks> sessionLookup = null)
         {
             this.preferenceResolver = preferenceResolver;
+            this.sessionLookup = sessionLookup ?? SolidWorksRunningSessions.Find;
         }
 
         public bool IsConnected { get { return application != null; } }
@@ -51,7 +53,9 @@ namespace SolidTweaks.Infrastructure.SolidWorks
         {
             try
             {
-                application = Marshal.GetActiveObject("SldWorks.Application") as ISldWorks;
+                if (!SolidWorksTarget.IsSupported) { ReleaseApplication(); return false; }
+                if (IsConnectionAlive()) return true;
+                application = sessionLookup(SolidWorksTarget.Year);
                 ApplicationLog.Info("SOLIDWORKS COM connection obtained=" + (application != null) + ".");
                 return application != null;
             }
@@ -102,14 +106,8 @@ namespace SolidTweaks.Infrastructure.SolidWorks
 
         public string GetExecutablePath()
         {
-            string installFolder = SolidWorksPreferenceResolver.ReadInstallFolder();
-            string executable = string.IsNullOrWhiteSpace(installFolder)
-                ? Path.Combine(
-                    System.Environment.GetFolderPath(System.Environment.SpecialFolder.ProgramFiles),
-                    "SOLIDWORKS Corp",
-                    "SOLIDWORKS",
-                    "SLDWORKS.exe")
-                : Path.Combine(installFolder, "SLDWORKS.exe");
+            SolidWorksInstallation installation = SolidWorksInstallation.Selected;
+            string executable = installation == null ? string.Empty : installation.ExecutablePath;
             if (!File.Exists(executable))
             {
                 throw new UserFacingException(
@@ -160,9 +158,14 @@ namespace SolidTweaks.Infrastructure.SolidWorks
         public void LoadAddin(string addinPath, string addinGuid)
         {
             ISldWorks sw = RequireApplication();
-            int loadResult = sw.LoadAddIn(addinPath);
-            ApplicationLog.Info("SOLIDWORKS LoadAddIn returned code " + loadResult + " for " + addinGuid + ".");
             object addin = sw.GetAddInObject(addinGuid);
+            int loadResult = 0;
+            if (addin == null)
+            {
+                loadResult = sw.LoadAddIn(addinPath);
+                ApplicationLog.Info("SOLIDWORKS LoadAddIn returned code " + loadResult + " for " + addinGuid + ".");
+                addin = sw.GetAddInObject(addinGuid);
+            }
             if (addin == null)
             {
                 throw new UserFacingException(
@@ -211,7 +214,9 @@ namespace SolidTweaks.Infrastructure.SolidWorks
             try
             {
                 application.GetProcessID();
-                return true;
+                if (SolidWorksTarget.YearFromRevision(application.RevisionNumber()) == SolidWorksTarget.Year) return true;
+                ReleaseApplication();
+                return false;
             }
             catch (COMException)
             {
@@ -266,44 +271,6 @@ namespace SolidTweaks.Infrastructure.SolidWorks
             {
                 AppendAddinLog("Failed to query the presence of feature " + featureId + ".", exception);
                 return false;
-            }
-        }
-
-        public void RemoveAndUnloadAddin(string addinPath, string addinGuid)
-        {
-            ISldWorks sw = RequireApplication();
-            object addin;
-            try
-            {
-                addin = sw.GetAddInObject(addinGuid);
-            }
-            catch (COMException)
-            {
-                return;
-            }
-            if (addin != null)
-            {
-                try
-                {
-                    InvokeAddinMethod(addin, "RemoveUserInterface");
-                }
-                finally
-                {
-                    if (Marshal.IsComObject(addin))
-                    {
-                        Marshal.FinalReleaseComObject(addin);
-                    }
-                    addin = null;
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                }
-                int unloadResult = sw.UnloadAddIn(addinPath);
-                if (unloadResult != 0)
-                {
-                    throw new UserFacingException(
-                        "The Solid Tweaks add-in could not be unloaded. Code: " + unloadResult + ".",
-                        UiText.Format("The Solid Tweaks add-in could not be unloaded. Code: {0}.", unloadResult));
-                }
             }
         }
 
@@ -364,7 +331,7 @@ namespace SolidTweaks.Infrastructure.SolidWorks
 
         private ISldWorks RequireApplication()
         {
-            if (application == null && !TryConnect())
+            if (!IsConnectionAlive() && !TryConnect())
             {
                 throw new UserFacingException(
                     "No active SOLIDWORKS session was found.",
@@ -374,64 +341,16 @@ namespace SolidTweaks.Infrastructure.SolidWorks
             return application;
         }
 
+        public int ProcessId { get { return RequireApplication().GetProcessID(); } }
+
         private object TryGetActiveDocument()
         {
+            if (!IsConnectionAlive() && !TryConnect()) return null;
             try
             {
-                ISldWorks connected = Marshal.GetActiveObject("SldWorks.Application") as ISldWorks;
-                if (connected != null)
-                {
-                    application = connected;
-                    object active = connected.ActiveDoc;
-                    if (active == null && connected.GetDocumentCount() > 0)
-                    {
-                        active = connected.GetFirstDocument();
-                    }
-                    if (active != null)
-                    {
-                        return active;
-                    }
-                }
+                return application.ActiveDoc ?? (application.GetDocumentCount() > 0 ? application.GetFirstDocument() : null);
             }
-            catch (COMException)
-            {
-                // Tenta abaixo com o RCW que ja estava conectado.
-            }
-
-            if (application != null)
-            {
-                try
-                {
-                    object document = application.ActiveDoc;
-                    if (document == null && application.GetDocumentCount() > 0)
-                    {
-                        document = application.GetFirstDocument();
-                    }
-                    if (document != null)
-                    {
-                        return document;
-                    }
-                }
-                catch (COMException)
-                {
-                    // A sessao pode continuar aberta depois que o RCW armazenado fica obsoleto.
-                }
-            }
-
-            if (!TryConnect())
-            {
-                return null;
-            }
-
-            try
-            {
-                object document = application.ActiveDoc;
-                return document ?? (application.GetDocumentCount() > 0 ? application.GetFirstDocument() : null);
-            }
-            catch (COMException)
-            {
-                return null;
-            }
+            catch (COMException) { ReleaseApplication(); return null; }
         }
 
         private void ReleaseApplication()
@@ -460,7 +379,7 @@ namespace SolidTweaks.Infrastructure.SolidWorks
                 return FormatRevisionNumber(version.ProductVersion) + " — " + UiText.Get("Not connected");
             }
 
-            return UiText.Get("SOLIDWORKS 2025 not found");
+            return SolidWorksTarget.Year == 0 ? UiText.Get("No SOLIDWORKS installation found") : "SOLIDWORKS " + SolidWorksTarget.Year + " — " + UiText.Get("Not connected");
         }
 
         private static string FormatRevisionNumber(string revision)

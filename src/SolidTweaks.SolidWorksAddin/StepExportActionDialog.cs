@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -21,7 +21,7 @@ namespace SolidTweaks.SolidWorksAddin
 
     internal sealed class StepExportActionDialog : Form
     {
-        private const string RegistryPath = @"Software\SolidTweaks\Features";
+        private static string RegistryPath { get { return SolidTweaksFeatureSettings.RegistryPath; } }
         private const string OpenFolderValueName = "ExportStepOpenFolder";
         private const string ProtocolValueName = "ExportStepProtocol";
         private StepExportAction selectedAction;

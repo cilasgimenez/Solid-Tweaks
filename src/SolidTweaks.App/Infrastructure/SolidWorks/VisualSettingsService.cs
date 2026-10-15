@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Management;
@@ -10,7 +10,7 @@ namespace SolidTweaks.Infrastructure.SolidWorks
 {
     internal sealed class VisualSettingsService
     {
-        private const string VersionRoot = @"Software\SolidWorks\SOLIDWORKS 2025";
+        private static string VersionRoot { get { return SolidWorksTarget.VersionRoot; } }
         private const string AllowListRoot = @"Software\SolidWorks\AllowList";
         private const string RealViewBackupRoot = @"Software\SolidTweaks\Visual\RealViewBackup";
         private const string WorkaroundsValueName = "Workarounds";

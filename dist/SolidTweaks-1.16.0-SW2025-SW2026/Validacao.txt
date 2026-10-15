@@ -1,0 +1,98 @@
+Solid Tweaks 1.16.0 - validação nas instalações reais
+Data: 15/10/2026
+
+Executável: SolidTweaks.exe, nesta pasta.
+O reparo já foi aplicado neste computador.
+
+CAUSA E CORREÇÃO
+
+O registro antigo de descoberta do suplemento 2025 permanecia global e também
+aparecia no perfil 2026. A janela nativa de suplementos utiliza o startup global
+mesmo quando a descoberta usa entradas por ano. Isso permitia interferência na
+inicialização do 2025. Sua DLL e suas preferências continuavam intactas.
+
+Cada componente agora é descoberto somente pelo seu ano, com identidades COM
+distintas e estáveis. Foram removidas as entradas de descoberta cruzadas, sem
+desregistrar os servidores COM antigos. A DLL original 1.14 do 2025 permanece
+no mesmo caminho, com o mesmo hash e o mesmo registro COM. Cada pacote inclui
+sua TLB e as dependências correspondentes: API 33 para 2025 e API 34 para 2026.
+
+O ciclo de ativação foi unificado: remover todos os recursos oculta a interface
+e desativa o startup; adicionar novamente reutiliza a mesma instância COM.
+Atualizações de arquivos exigem que a versão alvo esteja fechada. A reparação
+inicial de entradas compartilhadas exige ambas fechadas. Uma preferência
+explicitamente desativada nunca é tratada como preferência ausente.
+
+TESTES REAIS EXECUTADOS
+
+SOLIDWORKS Premium 2025 SP5.0, revisão 33.5.0.
+SOLIDWORKS Design Premium 2026 SP4.1, revisão 34.4.1.
+Ambos foram executados simultaneamente e reiniciados durante a validação.
+
+APROVADO nas duas versões:
+- Identificação da instalação e conexão com a sessão do ano selecionado.
+- Leitura dos recursos existentes e troca do seletor na aplicação compilada.
+- Exportação STEP AP214 pelo suplemento, seguida de reimportação nativa.
+  Volume do sólido original e reimportado: 0,000006 m3.
+- Exportação DXF de uma chapa de 100 x 50 x 2 mm.
+  Conferência das quatro linhas e do contorno retangular fechado no DXF.
+- Remover os dois botões, mantendo o componente carregado e dormente.
+- Adicionar os botões novamente na mesma sessão, com a mesma instância COM.
+- Reiniciar com ambos desativados: suplemento não carregado e botões ausentes.
+- Adicionar os recursos pela aplicação após essa reinicialização.
+- Atualizar com ambos desativados, preservando o estado desativado.
+- Atualizar com recursos ativos e reiniciar, com carregamento automático.
+
+Também foi testada a atualização do 2026 com o 2025 aberto. Abrir e aceitar
+a janela nativa Suplementos do 2026 não desativou mais o startup do 2025.
+A exportação STEP foi repetida com a DLL final 2026 e reimportada sem erro.
+
+PRESERVAÇÃO CONFERIDA AO FINAL
+
+- DLL original 2025: SHA-256 idêntico ao anterior.
+- Registro COM completo do componente 2025: idêntico ao backup.
+- Preferências de recursos e atalhos do Solid Tweaks: valores iguais ao backup
+  em cada ano; os valores usados temporariamente nos testes foram restaurados.
+- 38 seções de atalhos nativos de cada versão: sem alterações.
+- Quatro valores gráficos de cada versão: sem alterações.
+- RealView compartilhado: preservado; a permissão para alterá-lo continua
+  conforme autorizado anteriormente pelo usuário.
+
+Estado final, respeitando as seleções salvas antes desta validação:
+  SW2025: STEP marcado, DXF marcado, startup ativo.
+  SW2026: STEP desmarcado, DXF marcado, startup ativo.
+O STEP do 2026 foi ativado, exportado e validado durante os testes. Ele voltou
+a desmarcado porque esse era o valor persistido no backup, não por falha.
+Os arquivos de teste foram fechados. As duas sessões permanecem abertas.
+
+TESTES AUTOMATIZADOS
+
+65 verificações aprovadas, incluindo isolamento, integridade de pacote,
+preferências explícitas, ciclo de vida, seleção de versão e layout do formulário.
+Os testes automatizados usam chaves temporárias; os testes nativos acima foram
+executados separadamente nas instalações reais.
+
+EVIDÊNCIAS
+
+Nesta pasta:
+  Auditoria-final.txt
+  Testes-automatizados.txt
+
+No projeto:
+  tests\artifacts\live-validation\SW2025
+  tests\artifacts\live-validation\SW2026
+  tests\artifacts\live-validation\final-step-roundtrip-2026.txt
+  tests\artifacts\live-validation\startup-active-2025.txt
+  tests\artifacts\live-validation\startup-active-2026.txt
+  tests\artifacts\before-dual-version-repair-20261015-180655
+
+HASHES SHA-256
+
+Executável entregue:
+69A18DF4179621335A187A3DE9EA60A0D950E17FFC5BF1CF66A25BCA0F015B28
+
+DLL original 2025, preservada:
+7F65297E4C3D396BC3CFDBC7332CDEB4C44F8BF147295A659822C6D981531426
+
+DLL 2026 final:
+4F729E6B4B914F3BC6581E32B242ADB06323DD8FA98859A6A324ED352468E2FF

@@ -1,7 +1,29 @@
 # Solid Tweaks
 
-Aplicativo WinForms leve para SOLIDWORKS 2025, desenvolvido em C# e .NET Framework 4.8.
+Aplicativo WinForms leve para SOLIDWORKS 2025 e 2026, desenvolvido em C# e .NET Framework 4.8.
 
+## Versão 1.16.0 — isolamento e reparo de 2025/2026
+
+A regressão do 2025 estava no registro de descoberta e inicialização: a implementação anterior deixava o componente antigo globalmente visível e criava uma entrada duplicada no perfil 2026. O diálogo nativo de suplementos usa também a chave global de startup, portanto a sobreposição por ano não garantia isolamento. A inicialização do 2025 acabou desativada, embora sua DLL e suas preferências de recursos continuassem intactas.
+
+Agora cada identidade é descoberta somente pelo seu ano. A correção move as entradas de descoberta antigas para o 2025, remove as cópias equivocadas no 2026 e preserva os servidores COM antigos. O componente 2025 continua sendo exatamente a DLL 1.14 original, com o mesmo GUID e SHA-256. Quando necessário, seu pacote recebe a TLB e as dependências API 33 ao lado da DLL, sem recompilá-la. O 2026 tem sua própria DLL, TLB e API 34. A TLB é necessária para o carregamento por `LoadAddIn` no host nativo, mesmo quando a ativação COM isolada já funciona.
+
+Ambos usam o mesmo ciclo de ativação: remover o último recurso oculta a interface e desativa o startup, mantendo o objeto carregado dormente. Adicionar novamente reutiliza esse objeto. Atualizar exige que a versão alvo esteja fechada; uma reparação inicial das entradas compartilhadas exige fechar 2025 e 2026. As preferências explícitas são preservadas e o registro é validado contra o pacote completo antes de ser aceito.
+
+Compilação: `dist/SolidTweaks-1.16.0-SW2025-SW2026/SolidTweaks.exe`. Consulte `Validacao.txt` nesse diretório para os testes realizados nas instalações reais, além da suíte automatizada. O reparo nesta máquina já foi aplicado.
+## Seleção de SOLIDWORKS
+
+O campo **Versão alvo** identifica as instalações reais no computador pelo Registro e pela versão de `SLDWORKS.exe`. Chaves antigas de instalação sem um executável correspondente não aparecem. O aplicativo suporta 2025 e 2026; outras instalações são identificadas como não suportadas. A última seleção é lembrada. Na primeira execução, 2025 permanece como alvo se estiver instalado.
+
+Cada seleção relê seus checkboxes e atalhos. A conexão COM é conferida pelo número de revisão do servidor; com as duas versões abertas, a pesquisa na Running Object Table encontra a sessão da versão selecionada, e a automação de teclado usa o PID dessa sessão. O seletor fica bloqueado durante operações em andamento.
+
+O perfil do 2025 continua em `HKCU\Software\SolidTweaks\Features`, sem migração automática ao abrir o aplicativo. O perfil do 2026 usa `HKCU\Software\SolidTweaks\Versions\2026\Features`. Habilitar um recurso no 2025 não significa que ele já esteja instalado no 2026; a instalação é feita ao marcar o recurso na versão selecionada. Valores explicitamente desativados são preservados.
+
+**RealView é compartilhado** entre as versões, inclusive o backup de reversão existente. Alterá-lo afeta a lista gráfica comum do SOLIDWORKS, conforme indicado no formulário. Os demais ajustes visuais usam o perfil do ano selecionado.
+
+O executável incorpora a DLL original do 2025, conservada em `src/Compatibility/SW2025`, com o mesmo hash do componente anteriormente instalado. O novo projeto `SolidTweaks.SolidWorks2026Addin` é compilado contra a API oficial instalada do SW2026 (revisão 34), com uma identidade COM própria e estável, definida em `Shared/SolidTweaks2026AddinIdentity.cs`. Essa identidade paralela é necessária para não substituir o servidor COM do 2025. A identidade original em `Shared/SolidTweaksAddinIdentity.cs` permanece inalterada; ela também consta entre as identidades legadas para o perfil 2026, sem ser desregistrada.
+
+A descoberta usa `HKLM\SOFTWARE\SolidWorks\SOLIDWORKS <ano>\Addins\<GUID>`. O startup usa a chave global nativa `HKCU\Software\SolidWorks\AddInsStartup\<GUID>` e a entrada do respectivo ano; cada ano tem um GUID distinto. Nunca se cria uma entrada do componente 2025 no perfil 2026. O componente 2026 também recusa conexões de outro ano antes de criar a interface.
 ## Regra de persistência
 
 Todo recurso altera uma configuração persistente do SOLIDWORKS ou do add-in Solid Tweaks. Fechar o aplicativo não desfaz os ajustes. Teclas usam a personalização nativa; atalhos de mouse são escutados pelo add-in somente enquanto o SOLIDWORKS está em primeiro plano. Não há serviço ou processo auxiliar residente no Windows.
@@ -38,7 +60,7 @@ Os atalhos permanecem recolhidos por padrão no bloco **Tweaks**. O botão **+ O
 - **Limpar tecla** remove o vínculo atual, preservando outros atalhos do mesmo comando;
 - o label é atualizado somente depois que a alteração é confirmada.
 
-Na primeira execução desta versão, os antigos estados fixos F/C/M são desfeitos e os quatro atalhos configuráveis começam sem atribuição. A migração aguarda uma sessão conectada com documento ativo.
+Quando necessária, a migração dos antigos estados fixos F/C/M do 2025 acontece somente ao editar explicitamente um atalho configurável. Abrir o aplicativo ou trocar a versão não executa essa migração. O perfil novo do 2026 não migra nem modifica os atalhos do 2025.
 
 ### Guia Solid Tweaks
 
@@ -76,7 +98,7 @@ O botão usa diretamente a API do SOLIDWORKS, sem macro externa, para:
 - ao enviar para impressão, abrir o STEP com o aplicativo padrão associado no Windows;
 - restaurar as preferências STEP do usuário depois de cada exportação.
 
-O Windows solicita autorização de administrador quando o add-in precisa ser instalado, atualizado ou removido, pois o SOLIDWORKS registra add-ins em `HKLM\SOFTWARE\SOLIDWORKS\Addins`. O Solid Tweaks pode ser fechado depois da configuração.
+O Windows solicita autorização de administrador quando o add-in precisa ser instalado ou atualizado, pois a descoberta por versão é registrada em `HKLM\SOFTWARE\SolidWorks\SOLIDWORKS <ano>\Addins`. Desmarcar os recursos apenas remove a interface e desativa sua inicialização. O Solid Tweaks pode ser fechado depois da configuração.
 
 ### Exportar Chapas DXF
 
@@ -95,7 +117,7 @@ O comando é executado dentro do SOLIDWORKS pela guia **Solid Tweaks**. O formul
 
 ### Visual
 
-O bloco **Visual** reúne quatro ajustes persistentes do registro do SOLIDWORKS 2025. O estado dos checkboxes é lido diretamente das configurações efetivas, e não de uma cópia mantida pelo Solid Tweaks.
+O bloco **Visual** reúne quatro ajustes persistentes. O estado dos checkboxes é lido diretamente das configurações efetivas. RealView usa a lista gráfica compartilhada; os outros três ajustes usam o registro da versão alvo.
 
 Por padrão, somente **RealView** permanece visível. **+ Opções** expande os outros três ajustes usando a rolagem vertical, sem redimensionar o Form, e **- Opções** recolhe o bloco novamente.
 
@@ -110,10 +132,10 @@ Os ajustes são gravados no perfil do usuário do Windows. Quando o SOLIDWORKS e
 
 - Windows 10/11 64 bits
 - .NET Framework 4.8 ou mais recente
-- SOLIDWORKS 2025 em português do Brasil ou inglês
+- SOLIDWORKS 2025 ou 2026 em português do Brasil ou inglês
 - Visual Studio 2022 com **Desenvolvimento para desktop com .NET** apenas para compilar
 
-Não há pacotes NuGet. A interop oficial é carregada diretamente da instalação do SOLIDWORKS e não é copiada para a distribuição.
+Não há pacotes NuGet. Na compilação, as bibliotecas oficiais de interoperabilidade são obtidas das instalações do SOLIDWORKS. O EXE incorpora as dependências da API 33 para o componente 2025 e da API 34 para o componente 2026, extraindo cada conjunto junto à DLL correspondente.
 
 ## Diagnóstico e logs
 
@@ -132,9 +154,15 @@ O texto de status na parte inferior da janela é um link. Um clique abre diretam
 
 ## Compilar
 
-1. Abra `SolidTweaks.sln` no Visual Studio 2022.
-2. Selecione `Release` e compile a solução.
-3. Execute `src\SolidTweaks.App\bin\Release\SolidTweaks.exe`.
+1. Abra `SolidTweaks.sln` no Visual Studio 2022, com as APIs do SW2025 e SW2026 instaladas.
+2. Selecione `Release` e compile a solução, ou execute `powershell -File .\build.ps1`.
+3. Execute `dist\SolidTweaks-1.16.0-SW2025-SW2026\SolidTweaks.exe`.
+
+O caminho da API 2026 é detectado no Registro de 64 bits; pode ser informado ao MSBuild por `/p:SolidWorks2026ApiDir=...`. O aplicativo usa o subconjunto da API 2025 para compatibilidade, resolvendo a versão exata das bibliotecas incorporadas ao executável. A distribuição continua portátil, com os dois componentes incorporados ao EXE. O antigo `src\SolidTweaks.App\bin\Release\SolidTweaks.exe` foi preservado; ele não é a nova compilação.
+
+`powershell -File .\build.ps1 -Test` executa os testes automatizados. Eles usam chaves temporárias redirecionadas com `RegOverridePredefKey`, sessões simuladas e renderização do formulário, sem instalar o add-in no SOLIDWORKS real. Cobrem isolamento de preferências, detecção de chaves antigas, correspondência de GUID/API, preservação do pacote 2025, troca de alvo, rolagem e os seis fluxos do ciclo de vida. O pacote extraído do EXE também é carregado em processos novos, sem pré-carregar a API; retirar `swpublished` deve reproduzir a falha e restaurá-la deve permitir o carregamento. Dependências ausentes ou danificadas devem invalidar o pacote. A validação prática de conexão, STEP/DXF, seleção de versão e startup foi executada nos dois SOLIDWORKS instalados. O auxiliar `tests/LiveValidation.csproj` usa o ciclo real da aplicação e a API nativa; suas ações de escrita são executadas somente durante uma validação explícita, fora da suíte isolada. Os documentos de teste ficam em `tests/artifacts/live-validation`.
+
+Referências da API: [identificação de versão e acesso aos add-ins](https://help.solidworks.com/2026/english/api/sldworksapiprogguide/Overview/Accessing_Add-ins.htm) e [registros de add-ins específicos por versão](https://help.solidworks.com/2025/English/api/sldworksapiprogguide/Overview/Add-in_Icons.htm).
 
 Para alterar o atalho, mantenha uma sessão do SOLIDWORKS conectada e um documento ativo.
 
@@ -151,7 +179,7 @@ A compilação `Release` é portátil: a pasta de saída contém somente `SolidT
 - `Shared`: estado persistente compartilhado entre o aplicativo e o add-in.
 - `SolidTweaks.SolidWorksAddin`: um único add-in persistente, carregado na inicialização do SOLIDWORKS, com guia dinâmica e comandos no CommandManager.
 
-Os recursos que adicionam botões compartilham a guia `Solid Tweaks`. Ela permanece visível enquanto ao menos um desses recursos estiver habilitado e é removida quando todos forem desmarcados. O componente carregado não é descarregado no meio da sessão, o que permite recriar a guia com segurança; sem recursos ativos, ele não é carregado na próxima inicialização. O registro também elimina identidades antigas do add-in para impedir conflitos nas próximas extensões.
+Os recursos que adicionam botões compartilham a guia `Solid Tweaks`. Ela permanece visível enquanto ao menos um desses recursos estiver habilitado e é removida quando todos forem desmarcados. O componente carregado não é descarregado no meio da sessão, o que permite recriar a guia com segurança; sem recursos ativos, ele não é carregado na próxima inicialização. O registro limita a descoberta de cada componente ao seu ano. Os servidores COM e arquivos antigos do 2025 são preservados.
 
 Toda linha de recurso que possua um pré-requisito deve usar o indicador visual reutilizável ao lado do ícone de ajuda. O aviso permanece oculto quando o recurso está disponível e, quando bloqueado, informa em vermelho e de forma breve o que falta para habilitá-lo.
 

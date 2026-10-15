@@ -1,0 +1,12 @@
+src/SolidTweaks.App/obj/Multiversion/
+src/SolidTweaks.SolidWorks2026Addin/bin/
+src/SolidTweaks.SolidWorks2026Addin/obj/
+tests/bin/
+tests/obj/
+tests/artifacts/
+tests/probe-bin/
+tests/probe-obj/
+tests/live-bin/
+tests/live-obj/
+tests/live-validation-bin/
+tests/live-validation-obj/

@@ -12,22 +12,27 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 using SolidWorks.Interop.swpublished;
 using Environment = System.Environment;
+#if SW2026
+using AddinIdentity = SolidTweaks.Shared.SolidTweaks2026AddinIdentity;
+#else
+using AddinIdentity = SolidTweaks.Shared.SolidTweaksAddinIdentity;
+#endif
 
 namespace SolidTweaks.SolidWorksAddin
 {
     [ComVisible(true)]
-    [Guid(SolidTweaksAddinIdentity.CurrentGuidWithoutBraces)]
-    [ProgId(SolidTweaksAddinIdentity.CurrentProgId)]
+    [Guid(AddinIdentity.CurrentGuidWithoutBraces)]
+    [ProgId(AddinIdentity.CurrentProgId)]
     [ClassInterface(ClassInterfaceType.AutoDispatch)]
     public sealed class SolidTweaksAddin : ISwAddin
     {
-        public const string AddinGuid = SolidTweaksAddinIdentity.CurrentGuidWithoutBraces;
+        public const string AddinGuid = AddinIdentity.CurrentGuidWithoutBraces;
         public const string TabTitle = "Solid Tweaks";
         private const string LegacyTabTitle = "Exportar STEP";
         private const int CommandGroupId = 12001;
         private const int ExportStepCommandUserId = 12002;
         private const int ExportDxfCommandUserId = 12003;
-        private static readonly string[] LegacyAddinGuids = SolidTweaksAddinIdentity.LegacyGuids;
+        private static readonly string[] LegacyAddinGuids = AddinIdentity.LegacyGuids;
         private static readonly int[] SupportedDocumentTypes =
         {
             (int)swDocumentTypes_e.swDocPART,
@@ -46,7 +51,18 @@ namespace SolidTweaks.SolidWorksAddin
         {
             try
             {
+#if SW2026
+                AppendLog("SW2026 ConnectToSW started. Component=" + typeof(SolidTweaksAddin).Assembly.Location + "; cookie=" + cookie + ".");
+#endif
                 application = (ISldWorks)thisSw;
+#if SW2026
+                if (SolidWorksTarget.YearFromRevision(application.RevisionNumber()) != 2026)
+                {
+                    AppendLog("SW2026 component rejected host revision " + application.RevisionNumber() + ".");
+                    application = null;
+                    return false;
+                }
+#endif
                 if (!application.SetAddinCallbackInfo2(0, this, cookie))
                 {
                     throw new InvalidOperationException("SOLIDWORKS did not accept the add-in callbacks.");
@@ -376,22 +392,33 @@ namespace SolidTweaks.SolidWorksAddin
         public static void Register(Type type)
         {
             string guid = "{" + type.GUID.ToString().ToUpperInvariant() + "}";
+#if !SW2026
             foreach (string legacyGuid in LegacyAddinGuids)
             {
                 Registry.LocalMachine.DeleteSubKeyTree(@"SOFTWARE\SOLIDWORKS\Addins\" + legacyGuid, false);
                 Registry.CurrentUser.DeleteSubKeyTree(@"Software\SOLIDWORKS\AddInsStartup\" + legacyGuid, false);
                 Registry.ClassesRoot.DeleteSubKeyTree(@"CLSID\" + legacyGuid, false);
             }
+#endif
+#if SW2026
+            using (RegistryKey addin = Registry.LocalMachine.CreateSubKey(AddinIdentity.AddinsRoot + "\\" + guid))
+#else
             using (RegistryKey addin = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\SOLIDWORKS\Addins\" + guid))
+#endif
             {
                 if (addin == null)
                 {
                     throw new InvalidOperationException("Could not register the add-in in SOLIDWORKS.");
                 }
                 addin.SetValue(null, 0, RegistryValueKind.DWord);
+#if SW2026
+                addin.SetValue("Title", "Solid Tweaks (SW2026)");
+#else
                 addin.SetValue("Title", "Solid Tweaks");
+#endif
                 addin.SetValue("Description", UiText.Get("Solid Tweaks features in CommandManager"));
             }
+#if !SW2026
             using (RegistryKey startup = Registry.CurrentUser.CreateSubKey(@"Software\SOLIDWORKS\AddInsStartup\" + guid))
             {
                 if (startup != null)
@@ -399,14 +426,19 @@ namespace SolidTweaks.SolidWorksAddin
                     startup.SetValue(null, 1, RegistryValueKind.DWord);
                 }
             }
+#endif
         }
 
         [ComUnregisterFunction]
         public static void Unregister(Type type)
         {
             string guid = "{" + type.GUID.ToString().ToUpperInvariant() + "}";
+#if SW2026
+            Registry.LocalMachine.DeleteSubKeyTree(AddinIdentity.AddinsRoot + "\\" + guid, false);
+#else
             Registry.LocalMachine.DeleteSubKeyTree(@"SOFTWARE\SOLIDWORKS\Addins\" + guid, false);
             Registry.CurrentUser.DeleteSubKeyTree(@"Software\SOLIDWORKS\AddInsStartup\" + guid, false);
+#endif
         }
 
         private void CreateUserInterface()

@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using SolidWorks.Interop.sldworks;
+using SolidTweaks.Shared;
 
 namespace SolidTweaks.Infrastructure.SolidWorks
 {
@@ -17,7 +18,7 @@ namespace SolidTweaks.Infrastructure.SolidWorks
         public int ResolveToggle(string preferenceName)
         {
             int value;
-            if (cache.TryGetValue(preferenceName, out value))
+            if (cache.TryGetValue(SolidWorksTarget.Year + ":" + preferenceName, out value))
             {
                 return value;
             }
@@ -36,7 +37,7 @@ namespace SolidTweaks.Infrastructure.SolidWorks
                 throw new InvalidOperationException("SOLIDWORKS preference not found: " + preferenceName);
             }
 
-            cache[preferenceName] = value;
+            cache[SolidWorksTarget.Year + ":" + preferenceName] = value;
             return value;
         }
 
@@ -76,16 +77,13 @@ namespace SolidTweaks.Infrastructure.SolidWorks
                 yield return Path.Combine(installFolder, "api", "redist", "SolidWorks.Interop.swconst.dll");
             }
 
-            string programFiles = System.Environment.GetFolderPath(System.Environment.SpecialFolder.ProgramFiles);
-            yield return Path.Combine(programFiles, "SOLIDWORKS Corp", "SOLIDWORKS", "SolidWorks.Interop.swconst.dll");
+
         }
 
         internal static string ReadInstallFolder()
         {
-            using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\SolidWorks\SOLIDWORKS 2025\Setup"))
-            {
-                return key == null ? null : key.GetValue("SolidWorks Folder") as string;
-            }
+            SolidWorksInstallation installation = SolidWorksInstallation.Selected;
+            return installation == null ? null : installation.Folder;
         }
 
         internal static string ReadCurrentLanguage()
@@ -93,7 +91,7 @@ namespace SolidTweaks.Infrastructure.SolidWorks
             ISldWorks application = null;
             try
             {
-                application = Marshal.GetActiveObject("SldWorks.Application") as ISldWorks;
+                application = SolidWorksRunningSessions.Find(SolidWorksTarget.Year);
                 if (application != null)
                 {
                     string activeLanguage = application.GetCurrentLanguage();
@@ -123,7 +121,7 @@ namespace SolidTweaks.Infrastructure.SolidWorks
                 }
             }
 
-            const string versionRoot = @"Software\SolidWorks\SOLIDWORKS 2025";
+            string versionRoot = SolidWorksTarget.VersionRoot;
             try
             {
                 using (RegistryKey general = Registry.CurrentUser.OpenSubKey(versionRoot + @"\General", false))

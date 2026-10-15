@@ -11,6 +11,7 @@
     <Prefer32Bit>false</Prefer32Bit>
     <ApplicationIcon>Icone.ico</ApplicationIcon>
     <Deterministic>true</Deterministic>
+    <IntermediateOutputPath>obj\Multiversion\$(Configuration)\</IntermediateOutputPath>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -23,7 +24,7 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>..\..\dist\SolidTweaks-1.16.0-SW2025-SW2026\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
@@ -67,6 +68,12 @@
     <Compile Include="Presentation\MainForm.cs" />
     <Compile Include="Presentation\ShortcutCaptureDialog.cs" />
     <Compile Include="Presentation\UiPalette.cs" />
+    <Compile Include="Infrastructure\SolidWorks\SolidWorksInstallation.cs" />
+    <Compile Include="Infrastructure\SolidWorks\SolidWorksRunningSessions.cs" />
+    <Compile Include="Infrastructure\SolidWorks\SolidWorksVersionedAddinRegistration.cs" />
+    <Compile Include="..\Shared\SolidWorksTarget.cs" />
+    <Compile Include="..\Shared\SolidTweaks2026AddinIdentity.cs" />
+    <Compile Include="..\Shared\AddinFeatureLifecycle.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="..\Shared\Localization.cs">
@@ -83,6 +90,23 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\Compatibility\SW2025\SolidTweaks.SolidWorksAddin.v1_14.tlb">
+      <LogicalName>SolidTweaks.Embedded.SW2025.SolidTweaks.SolidWorksAddin.v1_14.tlb</LogicalName>
+    </EmbeddedResource><EmbeddedResource Include="$(ProgramW6432)\SOLIDWORKS Corp\SOLIDWORKS\SolidWorks.Interop.sldworks.dll"><LogicalName>SolidTweaks.Embedded.SW2025.SolidWorks.Interop.sldworks.dll</LogicalName></EmbeddedResource><EmbeddedResource Include="$(ProgramW6432)\SOLIDWORKS Corp\SOLIDWORKS\SolidWorks.Interop.swconst.dll"><LogicalName>SolidTweaks.Embedded.SW2025.SolidWorks.Interop.swconst.dll</LogicalName></EmbeddedResource><EmbeddedResource Include="$(ProgramW6432)\SOLIDWORKS Corp\SOLIDWORKS\SolidWorks.Interop.swpublished.dll"><LogicalName>SolidTweaks.Embedded.SW2025.SolidWorks.Interop.swpublished.dll</LogicalName></EmbeddedResource>    <EmbeddedResource Include="..\SolidTweaks.SolidWorks2026Addin\bin\$(Configuration)\SolidTweaks.SolidWorksAddin.SW2026.tlb">
+      <LogicalName>SolidTweaks.Embedded.SW2026.SolidTweaks.SolidWorksAddin.SW2026.tlb</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\SolidTweaks.SolidWorks2026Addin\bin\$(Configuration)\SolidWorks.Interop.sldworks.dll">
+      <LogicalName>SolidTweaks.Embedded.SW2026.SolidWorks.Interop.sldworks.dll</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\SolidTweaks.SolidWorks2026Addin\bin\$(Configuration)\SolidWorks.Interop.swconst.dll">
+      <LogicalName>SolidTweaks.Embedded.SW2026.SolidWorks.Interop.swconst.dll</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\SolidTweaks.SolidWorks2026Addin\bin\$(Configuration)\SolidWorks.Interop.swpublished.dll">
+      <LogicalName>SolidTweaks.Embedded.SW2026.SolidWorks.Interop.swpublished.dll</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\SolidTweaks.SolidWorks2026Addin\bin\$(Configuration)\SolidTweaks.SolidWorksAddin.SW2026.dll">
+      <LogicalName>SolidTweaks.Embedded.SolidTweaks.SolidWorksAddin.SW2026.dll</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="Help.png" />
     <EmbeddedResource Include="Help_RealView.png">
       <LogicalName>SolidTweaks.Help.RealView.png</LogicalName>
@@ -96,14 +120,14 @@
     <EmbeddedResource Include="Logo_Github.png">
       <LogicalName>SolidTweaks.Brand.Logo_Github.png</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\SolidTweaks.SolidWorksAddin\bin\$(Configuration)\SolidTweaks.SolidWorksAddin.v1_14.dll">
+    <EmbeddedResource Include="..\Compatibility\SW2025\SolidTweaks.SolidWorksAddin.v1_14.dll">
       <LogicalName>SolidTweaks.Embedded.SolidTweaks.SolidWorksAddin.v1_14.dll</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SolidTweaks.SolidWorksAddin\SolidTweaks.SolidWorksAddin.csproj">
-      <Project>{5175D767-6B50-4C8D-A511-03C7EBAE62B2}</Project>
-      <Name>SolidTweaks.SolidWorksAddin</Name>
+    <ProjectReference Include="..\SolidTweaks.SolidWorks2026Addin\SolidTweaks.SolidWorks2026Addin.csproj">
+      <Project>{6D1C3655-CA31-47AF-BE51-16BB41CC2026}</Project>
+      <Name>SolidTweaks.SolidWorks2026Addin</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
